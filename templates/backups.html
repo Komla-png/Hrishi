@@ -102,6 +102,19 @@
             </form>
         </div>
 
+        <!-- Upload Restore Section -->
+        <div class="create-backup-section" style="margin-top: 16px;">
+            <h3>Upload and Restore Backup</h3>
+            <form method="POST" action="/backups/upload-restore" class="create-backup-form" enctype="multipart/form-data" onsubmit="return confirm('This will replace current database with uploaded file. Continue?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="file" name="db_file" accept=".db" required>
+                <button type="submit" class="btn btn-restore">⬆️ Upload & Restore</button>
+            </form>
+            <p style="margin-top:8px;font-size:12px;color:#64748b;">
+                Upload your local <code>academy.db</code> backup file to restore all data and users.
+            </p>
+        </div>
+
         <!-- Backups List -->
         <div class="backups-section">
             <h3>Available Backups ({{ backups|length }})</h3>

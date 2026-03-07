@@ -2,9 +2,12 @@
 
 from flask import Blueprint, render_template, request, redirect, session, flash, send_file, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import secure_filename
 import os
+import shutil
+import time
 
-from utils import get_db, login_required, sanitize_input, create_backup, list_backups, restore_backup
+from utils import get_db, login_required, sanitize_input, create_backup, list_backups, restore_backup, DB_PATH
 
 settings_bp = Blueprint('settings', __name__)
 
@@ -158,3 +161,58 @@ def download_backup(filename):
     else:
         flash("Backup file not found", "error")
         return redirect("/backups")
+
+
+@settings_bp.route("/backups/upload-restore", methods=["POST"])
+@login_required
+def upload_restore_backup_route():
+    """Upload a .db file and restore it as the active database."""
+    uploaded_file = request.files.get("db_file")
+    if not uploaded_file or not uploaded_file.filename:
+        flash("Please select a backup file (.db)", "error")
+        return redirect("/backups")
+
+    filename = secure_filename(uploaded_file.filename)
+    if not filename.lower().endswith(".db"):
+        flash("Invalid file type. Please upload a .db file", "error")
+        return redirect("/backups")
+
+    uploads_dir = os.path.join("instance", "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
+    temp_path = os.path.join(uploads_dir, f"restore_{int(time.time())}_{filename}")
+
+    try:
+        uploaded_file.save(temp_path)
+
+        # Validate SQLite file header before restoring.
+        with open(temp_path, "rb") as f:
+            header = f.read(16)
+        if header != b"SQLite format 3\x00":
+            flash("Uploaded file is not a valid SQLite database", "error")
+            return redirect("/backups")
+
+        # Backup current DB before replacing.
+        create_backup("before_upload_restore")
+
+        db_dir = os.path.dirname(DB_PATH)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+
+        shutil.copy2(temp_path, DB_PATH)
+
+        # Remove WAL/SHM files to avoid mismatch with replaced DB.
+        for sidecar in (DB_PATH + "-wal", DB_PATH + "-shm"):
+            if os.path.exists(sidecar):
+                os.remove(sidecar)
+
+        flash("Database restored successfully from uploaded backup", "success")
+    except Exception as e:
+        flash(f"Failed to restore uploaded backup: {str(e)}", "error")
+    finally:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+
+    return redirect("/backups")
