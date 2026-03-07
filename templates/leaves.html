@@ -27,6 +27,17 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.35);
         }
 
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 24px;
+        }
+
+        .grid-2 .section {
+            max-width: 100%;
+            min-width: 0;
+        }
+
         /* Header */
         .header {
             display: flex;
@@ -238,14 +249,11 @@
             font-weight: 600;
         }
 
-        .badge-casual { background: #dbeafe; color: #1d4ed8; }
-        .badge-sick { background: #fee2e2; color: #dc2626; }
         .badge-paid { background: #dcfce7; color: #16a34a; }
         .badge-unpaid { background: #fef3c7; color: #d97706; }
         .badge-weekoff { background: #f0fdf4; color: #15803d; border: 1px dashed #86efac; }
+        .badge-week { background: #f0fdf4; color: #15803d; border: 1px dashed #86efac; }
         .badge-ot { background: #fdf4ff; color: #a855f7; border: 1px solid #e879f9; }
-        .badge-emergency { background: #fce7f3; color: #db2777; }
-        .badge-other { background: #e2e8f0; color: #475569; }
 
         /* Remarks */
         .remarks {
@@ -373,6 +381,11 @@
         .summary-table {
             max-height: 300px;
             overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        .summary-table table {
+            min-width: 700px;
         }
 
         /* Empty State */
@@ -541,6 +554,25 @@ function loadThemePreference() {
 }
 loadThemePreference();
 </script>
+    <script>
+    // Global night mode sync: applies theme from localStorage and listens for changes
+    function applyThemeFromStorage() {
+        try {
+            const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
+            if (prefs.theme === 'light') {
+                document.body.classList.add('light-theme');
+                document.body.classList.remove('dark-theme');
+            } else {
+                document.body.classList.add('dark-theme');
+                document.body.classList.remove('light-theme');
+            }
+        } catch(e) {}
+    }
+    applyThemeFromStorage();
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'dashboardPreferences') applyThemeFromStorage();
+    });
+    </script>
     <div class="container">
         <!-- Header -->
         <div class="header">
@@ -557,18 +589,21 @@ loadThemePreference();
                     </svg>
                     Add Leave
                 </button>
-                <a href="/coaches" class="btn btn-purple">👥 Coaches</a>
-                <a href="/analytics" class="btn btn-secondary">📊 Analytics</a>
-                <a href="/" class="btn btn-dark">🏠 Dashboard</a>
+                <a href="/dashboard" class="btn btn-dark">📊 Dashboard</a>
+                <a href="/coaches" class="btn btn-purple">🏋️ Coaches</a>
+                <a href="/analytics?year={{ year }}" class="btn btn-primary">📈 Analytics</a>
+                <a href="/settings" class="btn" style="background: #8b5cf6; color: white;">⚙️ Settings</a>
             </div>
         </div>
+
+            <a href="/leaves/weekoff" style="display:inline-block;margin-top:16px;padding:8px 16px;background:#10b981;color:#fff;border-radius:4px;text-decoration:none;">View Week Off Records</a>
 
         <!-- Filter Bar -->
         <div class="filter-bar">
             <div class="filter-group">
                 <label>Year:</label>
                 <select onchange="applyFilters()" id="yearSelect">
-                    {% for y in range(2024, 2031) %}
+                    {% for y in range(2023, 2031) %}
                     <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
                     {% endfor %}
                 </select>
@@ -598,6 +633,14 @@ loadThemePreference();
                     {% for coach in coaches %}
                     <option value="{{ coach[0] }}" {% if coach[0]|string == selected_coach %}selected{% endif %}>{{ coach[1] }} ({{ coach[2] }})</option>
                     {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Duration:</label>
+                <select onchange="applyFilters()" id="durationSelect">
+                    <option value="All" {% if selected_duration == 'All' %}selected{% endif %}>All Durations</option>
+                    <option value="full_day" {% if selected_duration == 'full_day' %}selected{% endif %}>Full Day</option>
+                    <option value="half_day" {% if selected_duration == 'half_day' %}selected{% endif %}>Half Day</option>
                 </select>
             </div>
             <button class="btn btn-secondary btn-sm" onclick="clearFilters()">Clear Filters</button>
@@ -683,6 +726,7 @@ loadThemePreference();
                                 <th>From</th>
                                 <th>To</th>
                                 <th>Days</th>
+                                <th>Duration</th>
                                 <th>Coach</th>
                                 <th>Center</th>
                                 <th>Type</th>
@@ -697,7 +741,12 @@ loadThemePreference();
                                 <td class="date-display">{{ leave[5] }}</td>
                                 <td style="text-align: center; font-weight: 600;">
                                     <span style="background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 10px; font-size: 12px;">
-                                        {{ leave[9] }}
+                                        {{ leave[10] }}
+                                    </span>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span style="background: #f1f5f9; color: #334155; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600;">
+                                        {{ 'Half Day' if leave[7] == 'half_day' else 'Full Day' }}
                                     </span>
                                 </td>
                                 <td>{{ leave[2] }}</td>
@@ -705,11 +754,11 @@ loadThemePreference();
                                 <td>
                                     <span class="badge badge-{{ leave[6]|lower|replace(' ', '') }}">{{ leave[6] }}</span>
                                 </td>
-                                <td class="remarks" title="{{ leave[7] or 'No remarks' }}">
-                                    {{ leave[7] or '—' }}
+                                <td class="remarks" title="{{ leave[8] or 'No remarks' }}">
+                                    {{ leave[8] or '—' }}
                                 </td>
                                 <td class="action-btns">
-                                    <button class="btn btn-primary btn-sm" onclick="editLeave({{ leave[0] }}, {{ leave[1] }}, '{{ leave[4] }}', '{{ leave[5] }}', '{{ leave[6] }}', '{{ leave[7]|replace("'", "\\'") if leave[7] else '' }}')">Edit</button>
+                                    <button class="btn btn-primary btn-sm" onclick="editLeave({{ leave[0] }}, {{ leave[1] }}, '{{ leave[4] }}', '{{ leave[5] }}', '{{ leave[6] }}', '{{ leave[7] }}', '{{ leave[8]|replace("'", "\\'") if leave[8] else '' }}')">Edit</button>
                                     <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this leave record?')">
                                         <input type="hidden" name="action" value="delete_leave">
                                         <input type="hidden" name="leave_id" value="{{ leave[0] }}">
@@ -762,27 +811,27 @@ loadThemePreference();
                                 <td>{{ stat[2] }}</td>
                                 <td style="text-align: center;">
                                     <span style="background: {% if (stat[4] or 0) > 5 %}#fee2e2{% elif (stat[4] or 0) > 0 %}#fef3c7{% else %}#f1f5f9{% endif %}; color: {% if (stat[4] or 0) > 5 %}#dc2626{% elif (stat[4] or 0) > 0 %}#d97706{% else %}#64748b{% endif %}; padding: 4px 12px; border-radius: 20px; font-weight: 600;">
-                                        {{ (stat[4] or 0)|int }}
+                                        {{ (stat[4] or 0)|round(1) }}
                                     </span>
                                 </td>
                                 <td style="text-align: center;">
                                     <span style="background: #dcfce7; color: #16a34a; padding: 4px 12px; border-radius: 20px; font-weight: 600;">
-                                        {{ (stat[5] or 0)|int }}
+                                        {{ (stat[5] or 0)|round(1) }}
                                     </span>
                                 </td>
                                 <td style="text-align: center;">
                                     <span style="background: #f0fdf4; color: #15803d; padding: 4px 12px; border-radius: 20px; font-weight: 600; border: 1px dashed #86efac;">
-                                        {{ (stat[7] or 0)|int }}
+                                        {{ (stat[7] or 0)|round(1) }}
                                     </span>
                                 </td>
                                 <td style="text-align: center;">
                                     <span style="background: #fdf4ff; color: #a855f7; padding: 4px 12px; border-radius: 20px; font-weight: 600; border: 1px solid #e879f9;">
-                                        {{ (stat[8] or 0)|int }}
+                                        {{ (stat[8] or 0)|round(1) }}
                                     </span>
                                 </td>
                                 <td style="text-align: center;">
                                     <span style="background: {% if (stat[6] or 0) > 15 %}#fee2e2{% elif (stat[6] or 0) > 8 %}#fef3c7{% else %}#dbeafe{% endif %}; color: {% if (stat[6] or 0) > 15 %}#dc2626{% elif (stat[6] or 0) > 8 %}#d97706{% else %}#1d4ed8{% endif %}; padding: 4px 12px; border-radius: 20px; font-weight: 600;">
-                                        {{ (stat[6] or 0)|int }}
+                                        {{ (stat[6] or 0)|round(1) }}
                                     </span>
                                 </td>
                             </tr>
@@ -827,6 +876,14 @@ loadThemePreference();
                 </div>
                 <div class="form-group" style="margin-top: -10px;">
                     <small style="color: #64748b;" id="add_days_info">1 day(s)</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Duration</label>
+                    <select name="leave_duration" id="add_leave_duration" onchange="updateDaysInfo('add')">
+                        <option value="full_day">Full Day</option>
+                        <option value="half_day">Half Day</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
@@ -881,6 +938,14 @@ loadThemePreference();
                 <div class="form-group" style="margin-top: -10px;">
                     <small style="color: #64748b;" id="edit_days_info">1 day(s)</small>
                 </div>
+
+                <div class="form-group">
+                    <label>Duration</label>
+                    <select name="leave_duration" id="edit_leave_duration" onchange="updateDaysInfo('edit')">
+                        <option value="full_day">Full Day</option>
+                        <option value="half_day">Half Day</option>
+                    </select>
+                </div>
                 
                 <div class="form-group">
                     <label>Leave Type</label>
@@ -926,20 +991,22 @@ loadThemePreference();
             const month = document.getElementById('monthSelect').value;
             const center = document.getElementById('centerSelect').value;
             const coach = document.getElementById('coachSelect').value;
-            window.location.href = `/leaves?year=${year}&month=${month}&center=${center}&coach=${coach}`;
+            const duration = document.getElementById('durationSelect').value;
+            window.location.href = `/leaves?year=${year}&month=${month}&center=${center}&coach=${coach}&duration=${duration}`;
         }
 
         function clearFilters() {
-            window.location.href = `/leaves?year={{ year }}&month=All`;
+            window.location.href = `/leaves?year={{ year }}&month=All&duration=All`;
         }
 
         // Edit leave function
-        function editLeave(id, coachId, fromDate, toDate, type, remarks) {
+        function editLeave(id, coachId, fromDate, toDate, type, duration, remarks) {
             document.getElementById('edit_leave_id').value = id;
             document.getElementById('edit_coach_id').value = coachId;
             document.getElementById('edit_from_date').value = fromDate;
             document.getElementById('edit_to_date').value = toDate;
             document.getElementById('edit_leave_type').value = type;
+            document.getElementById('edit_leave_duration').value = duration || 'full_day';
             document.getElementById('edit_remarks').value = remarks;
             updateDaysInfo('edit');
             openModal('editLeaveModal');
@@ -949,12 +1016,14 @@ loadThemePreference();
         function updateDaysInfo(prefix) {
             const fromDate = document.getElementById(prefix + '_from_date').value;
             const toDate = document.getElementById(prefix + '_to_date').value;
+            const duration = document.getElementById(prefix + '_leave_duration').value;
             
             if (fromDate && toDate) {
                 const from = new Date(fromDate);
                 const to = new Date(toDate);
-                const days = Math.floor((to - from) / (1000 * 60 * 60 * 24)) + 1;
-                document.getElementById(prefix + '_days_info').textContent = days + ' day(s)';
+                const baseDays = Math.floor((to - from) / (1000 * 60 * 60 * 24)) + 1;
+                const totalDays = duration === 'half_day' ? (baseDays * 0.5) : baseDays;
+                document.getElementById(prefix + '_days_info').textContent = totalDays + ' day(s)';
             }
         }
 
@@ -975,6 +1044,24 @@ loadThemePreference();
         // Add event listeners for to_date changes
         document.getElementById('add_to_date').addEventListener('change', () => updateDaysInfo('add'));
         document.getElementById('edit_to_date').addEventListener('change', () => updateDaysInfo('edit'));
+        document.getElementById('add_leave_duration').addEventListener('change', () => updateDaysInfo('add'));
+        document.getElementById('edit_leave_duration').addEventListener('change', () => updateDaysInfo('edit'));
+
+        // Set today's date as default for add leave form
+        function setTodayAsDefault() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayString = `${year}-${month}-${day}`;
+            
+            document.getElementById('add_from_date').value = todayString;
+            document.getElementById('add_to_date').value = todayString;
+            updateDaysInfo('add');
+        }
+        
+        // Set today's date when page loads
+        document.addEventListener('DOMContentLoaded', setTodayAsDefault);
 
         // Charts
         const monthlyData = {{ monthly_leaves|tojson|safe }};
@@ -1012,12 +1099,10 @@ loadThemePreference();
         const typeLabels = typeData.map(t => t[0]);
         const typeCounts = typeData.map(t => t[1]);
         const typeColors = {
-            'Casual': '#3b82f6',
-            'Sick': '#ef4444',
             'Paid': '#10b981',
             'Unpaid': '#f97316',
-            'Emergency': '#ec4899',
-            'Other': '#64748b'
+            'OT': '#a855f7',
+            'Week Off': '#15803d'
         };
 
         new Chart(document.getElementById('typeChart'), {

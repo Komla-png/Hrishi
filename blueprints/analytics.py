@@ -1,4 +1,4 @@
-"""Analytics blueprint - Analytics and reporting routes."""
+"""Analytics blueprint - Executive analytics and performance insights."""
 
 from datetime import datetime
 from flask import Blueprint, render_template, request
@@ -8,174 +8,265 @@ from utils import get_db, login_required, CALENDAR_MONTHS
 analytics_bp = Blueprint('analytics', __name__)
 
 
-@analytics_bp.route("/analytics")
+@analytics_bp.route('/analytics')
 @login_required
 def analytics():
-    """Analytics dashboard with charts and tables."""
+    """Render analytics page with revenue, target, salary and achievement insights."""
+    year = int(request.args.get('year', datetime.now().year))
+    current_month = datetime.now().strftime('%B')
+    
+    # Get month range filters from query params
+    from_month = request.args.get('from_month', 'January')
+    to_month = request.args.get('to_month', current_month)
+    
+    # Calculate included months based on filters
+    try:
+        from_index = CALENDAR_MONTHS.index(from_month)
+        to_index = CALENDAR_MONTHS.index(to_month)
+        
+        # Ensure from is before to
+        if from_index > to_index:
+            from_index, to_index = to_index, from_index
+            
+        included_months = CALENDAR_MONTHS[from_index:to_index + 1]
+    except ValueError:
+        # Fallback to Jan-to-current if invalid months provided
+        current_month_index = CALENDAR_MONTHS.index(current_month) if current_month in CALENDAR_MONTHS else len(CALENDAR_MONTHS) - 1
+        included_months = CALENDAR_MONTHS[:current_month_index + 1]
+        from_month = 'January'
+        to_month = current_month
+
     conn = get_db()
     cur = conn.cursor()
-    year = int(request.args.get("year", datetime.now().year))
-    
-    # Get selected center (0 = All Centers)
-    selected_center = request.args.get("center", "0")
-    selected_center = int(selected_center) if selected_center else 0
-    
-    # Get selected months (comma-separated or empty for all)
-    selected_months_str = request.args.get("months", "")
-    if selected_months_str:
-        selected_months = selected_months_str.split(",")
-    else:
-        selected_months = CALENDAR_MONTHS.copy()
-    
-    # Get all centers for dropdown
-    centers = cur.execute("SELECT id, name FROM centers ORDER BY name").fetchall()
-    
-    # Get selected center name
-    selected_center_name = "All Centers"
-    if selected_center != 0:
-        for c in centers:
-            if c[0] == selected_center:
-                selected_center_name = c[1]
-                break
-    
-    # Build query based on center selection
-    if selected_center == 0:
-        # All centers
-        cur.execute("""
-            SELECT month, SUM(revenue) AS total_revenue, SUM(target) AS total_target
-            FROM monthly_data
-            WHERE year=?
-            GROUP BY month
-        """, (year,))
-    else:
-        # Specific center
-        cur.execute("""
-            SELECT month, SUM(revenue) AS total_revenue, SUM(target) AS total_target
-            FROM monthly_data
-            WHERE year=? AND center_id=?
-            GROUP BY month
-        """, (year, selected_center))
-    
-    rt_rows = cur.fetchall()
-    revenue_target_by_month = {}
-    for row in rt_rows:
-        revenue_target_by_month[row["month"]] = {
-            "total_revenue": row["total_revenue"] or 0,
-            "total_target": row["total_target"] or 0,
+
+    monthly_rows = cur.execute(
+        """
+        SELECT month,
+               COALESCE(SUM(revenue), 0) AS total_revenue,
+               COALESCE(SUM(target), 0) AS total_target
+        FROM monthly_data
+        WHERE year = ? AND month IN ({})
+        GROUP BY month
+        """.format(','.join('?' * len(included_months))),
+        (year, *included_months),
+    ).fetchall()
+
+    monthly_totals = {
+        row['month']: {
+            'revenue': float(row['total_revenue'] or 0),
+            'target': float(row['total_target'] or 0),
         }
+        for row in monthly_rows
+    }
 
-    # Get salary per month (filtered by center if needed)
-    if selected_center == 0:
-        cur.execute("""
-            SELECT cs.month, SUM(cs.salary) AS total_salary
-            FROM coach_salaries cs
-            JOIN coaches c ON cs.coach_id = c.id
-            WHERE cs.year=?
-            GROUP BY cs.month
-        """, (year,))
-    else:
-        cur.execute("""
-            SELECT cs.month, SUM(cs.salary) AS total_salary
-            FROM coach_salaries cs
-            JOIN coaches c ON cs.coach_id = c.id
-            WHERE cs.year=? AND c.center_id=?
-            GROUP BY cs.month
-        """, (year, selected_center))
-    
-    sal_rows = cur.fetchall()
-    salary_by_month = {row["month"]: row["total_salary"] or 0 for row in sal_rows}
+    salary_rows = cur.execute(
+        """
+        SELECT co.center_id,
+               cs.month,
+               COALESCE(SUM(cs.salary), 0) AS total_salary
+        FROM coach_salaries cs
+        JOIN coaches co ON cs.coach_id = co.id
+        WHERE cs.year = ? 
+          AND co.end_month IS NULL 
+          AND co.end_year IS NULL
+          AND cs.month IN ({})
+        GROUP BY co.center_id, cs.month
+        """.format(','.join('?' * len(included_months))),
+        (year, *included_months),
+    ).fetchall()
 
-    # Build analytics data
-    analytics_data = []
-    total_revenue = 0
-    total_target = 0
-    total_salary = 0
-    
-    # For selected months calculation
-    selected_revenue = 0
-    selected_target = 0
-    selected_count = 0
+    salary_by_center_month = {
+        (row['center_id'], row['month']): float(row['total_salary'] or 0)
+        for row in salary_rows
+    }
 
-    for m in CALENDAR_MONTHS:
-        totals = revenue_target_by_month.get(m, {"total_revenue": 0, "total_target": 0})
-        revenue = totals["total_revenue"] or 0
-        target = totals["total_target"] or 0
-        salary = salary_by_month.get(m, 0) or 0
+    salary_by_center = {}
+    for row in salary_rows:
+        cid = row['center_id']
+        salary_by_center[cid] = salary_by_center.get(cid, 0.0) + float(row['total_salary'] or 0)
 
-        achieved = round((revenue / target * 100), 1) if target > 0 else 0
-        salary_ratio = round((salary / revenue * 100), 1) if revenue > 0 else 0
-        profit = revenue - salary
+    center_rows = cur.execute(
+        """
+        SELECT c.id,
+               c.name,
+               COALESCE(SUM(md.revenue), 0) AS total_revenue,
+               COALESCE(SUM(md.target), 0) AS total_target
+        FROM centers c
+        LEFT JOIN monthly_data md ON md.center_id = c.id AND md.year = ? AND md.month IN ({})
+        GROUP BY c.id, c.name
+        ORDER BY c.name COLLATE NOCASE
+        """.format(','.join('?' * len(included_months))),
+        (year, *included_months),
+    ).fetchall()
 
-        total_revenue += revenue
-        total_target += target
-        total_salary += salary
+    centers = []
+    for row in center_rows:
+        cid = row['id']
+        revenue = float(row['total_revenue'] or 0)
+        target = float(row['total_target'] or 0)
+        salary = float(salary_by_center.get(cid, 0))
+
+        achievement = (revenue / target * 100) if target > 0 else 0
+        salary_percent = (salary / revenue * 100) if revenue > 0 else 0
+
+        centers.append(
+            {
+                'id': cid,
+                'name': row['name'],
+                'revenue': round(revenue, 2),
+                'target': round(target, 2),
+                'salary': round(salary, 2),
+                'achievement': round(achievement, 1),
+                'salary_percent': round(salary_percent, 1),
+            }
+        )
+
+    total_revenue = round(sum(c['revenue'] for c in centers), 2)
+    total_target = round(sum(c['target'] for c in centers), 2)
+    total_salary = round(sum(c['salary'] for c in centers), 2)
+    achievement_pct = round((total_revenue / total_target * 100) if total_target > 0 else 0, 1)
+
+    avg_salary_pct = round((total_salary / total_revenue * 100) if total_revenue > 0 else 0, 1)
+
+    ranked_centers = sorted(centers, key=lambda x: x['achievement'], reverse=True)
+    best_center = ranked_centers[0]['name'] if ranked_centers else 'N/A'
+
+    monthly_revenue = []
+    monthly_target = []
+    monthly_achievement = []
+    monthly_growth = []
+
+    # For the first month, try to get previous month's revenue for growth calculation
+    previous_revenue = None
+    if included_months:
+        first_month = included_months[0]
+        first_month_index = CALENDAR_MONTHS.index(first_month)
         
-        # Track selected months data
-        is_selected = m in selected_months
-        if is_selected:
-            selected_revenue += revenue
-            selected_target += target
-            selected_count += 1
+        # If first month is not January, get previous month from same year
+        if first_month_index > 0:
+            prev_month = CALENDAR_MONTHS[first_month_index - 1]
+            prev_year = year
+        else:
+            # If first month is January, get December from previous year
+            prev_month = 'December'
+            prev_year = year - 1
+        
+        # Try to get previous month's revenue
+        prev_row = cur.execute(
+            """
+            SELECT COALESCE(SUM(revenue), 0) AS total_revenue
+            FROM monthly_data
+            WHERE year = ? AND month = ?
+            """,
+            (prev_year, prev_month),
+        ).fetchone()
+        
+        if prev_row and prev_row['total_revenue'] > 0:
+            previous_revenue = float(prev_row['total_revenue'])
+    
+    for month in included_months:
+        month_revenue = round(monthly_totals.get(month, {}).get('revenue', 0), 2)
+        month_target = round(monthly_totals.get(month, {}).get('target', 0), 2)
+        month_achievement_pct = round((month_revenue / month_target * 100) if month_target > 0 else 0, 1)
 
-        analytics_data.append({
-            "month": m,
-            "revenue": revenue,
-            "target": target,
-            "achieved": achieved,
-            "salary_ratio": salary_ratio,
-            "profit": profit,
-            "is_selected": is_selected,
-        })
+        monthly_revenue.append(month_revenue)
+        monthly_target.append(month_target)
+        monthly_achievement.append(month_achievement_pct)
 
-    # Calculate averages for selected months
-    avg_revenue = round(selected_revenue / selected_count, 2) if selected_count > 0 else 0
-    avg_target = round(selected_target / selected_count, 2) if selected_count > 0 else 0
-    avg_achievement = round((selected_revenue / selected_target * 100), 1) if selected_target > 0 else 0
+        if previous_revenue is None or previous_revenue == 0:
+            monthly_growth.append(None)
+        else:
+            monthly_growth.append(round(((month_revenue - previous_revenue) / previous_revenue) * 100, 1))
+        previous_revenue = month_revenue
 
-    # Calculate growth data (month-to-month)
-    growth_data = _calculate_growth(analytics_data)
+    heatmap_rows = []
+    salary_monitoring_series = []
+    for c in centers:
+        cid = c['id']
+        month_achievements = []
+        month_salary_pct = []
+
+        for month in included_months:
+            cur.execute(
+                """
+                SELECT COALESCE(SUM(revenue), 0) AS revenue,
+                       COALESCE(SUM(target), 0) AS target
+                FROM monthly_data
+                WHERE center_id = ? AND year = ? AND month = ?
+                """,
+                (cid, year, month),
+            )
+            md = cur.fetchone()
+            month_revenue = float(md['revenue'] or 0)
+            month_target = float(md['target'] or 0)
+            month_salary = salary_by_center_month.get((cid, month), 0)
+
+            month_ach = round((month_revenue / month_target * 100) if month_target > 0 else 0, 1)
+            month_sal_pct = round((month_salary / month_revenue * 100) if month_revenue > 0 else 0, 1)
+
+            month_achievements.append(month_ach)
+            month_salary_pct.append(month_sal_pct)
+
+        heatmap_rows.append({'center': c['name'], 'values': month_achievements})
+        salary_monitoring_series.append({'center': c['name'], 'values': month_salary_pct})
+
+    distribution_bins = {
+        '<60%': 0,
+        '60-79%': 0,
+        '80-99%': 0,
+        '100-119%': 0,
+        '>=120%': 0,
+    }
+
+    for c in centers:
+        ach = c['achievement']
+        if ach < 60:
+            distribution_bins['<60%'] += 1
+        elif ach < 80:
+            distribution_bins['60-79%'] += 1
+        elif ach < 100:
+            distribution_bins['80-99%'] += 1
+        elif ach < 120:
+            distribution_bins['100-119%'] += 1
+        else:
+            distribution_bins['>=120%'] += 1
+
+    alerts = []
+    for c in ranked_centers:
+        reasons = []
+        if c['achievement'] < 80:
+            reasons.append(f"Achievement only {c['achievement']}%")
+        if c['salary_percent'] > 30:
+            reasons.append(f"Salary % high at {c['salary_percent']}%")
+        if reasons:
+            alerts.append({'center': c['name'], 'severity': 'high' if c['achievement'] < 60 else 'medium', 'message': ' | '.join(reasons)})
 
     conn.close()
 
+    summary = {
+        'total_revenue': total_revenue,
+        'total_target': total_target,
+        'achievement_pct': achievement_pct,
+        'avg_salary_pct': avg_salary_pct,
+        'best_center': best_center,
+        'total_salary': total_salary,
+    }
+
     return render_template(
-        "analytics.html",
-        analytics_data=analytics_data,
-        growth_data=growth_data,
-        total_revenue=total_revenue,
-        total_target=total_target,
-        avg_achievement=avg_achievement,
+        'analytics.html',
         year=year,
-        centers=centers,
-        selected_center=selected_center,
-        selected_center_name=selected_center_name,
-        selected_months=selected_months,
-        calendar_months=CALENDAR_MONTHS,
-        avg_revenue=avg_revenue,
-        avg_target=avg_target,
-        selected_revenue=selected_revenue,
-        selected_target=selected_target,
-        selected_count=selected_count,
+        from_month=from_month,
+        to_month=to_month,
+        all_months=CALENDAR_MONTHS,
+        months=included_months,
+        summary=summary,
+        ranked_centers=ranked_centers,
+        monthly_revenue=monthly_revenue,
+        monthly_target=monthly_target,
+        monthly_achievement=monthly_achievement,
+        monthly_growth=monthly_growth,
+        heatmap_rows=heatmap_rows,
+        salary_monitoring_series=salary_monitoring_series,
+        distribution_bins=distribution_bins,
+        alerts=alerts,
     )
-
-
-def _calculate_growth(analytics_data):
-    """Calculate month-to-month growth percentages."""
-    growth_data = []
-    for i, data in enumerate(analytics_data):
-        if i == 0:
-            growth = 0
-        else:
-            prev_revenue = analytics_data[i - 1]["revenue"]
-            if prev_revenue > 0:
-                growth = round(((data["revenue"] - prev_revenue) / prev_revenue) * 100, 1)
-            else:
-                growth = 0
-
-        direction = "📈" if growth > 0 else ("📉" if growth < 0 else "➡️")
-        growth_data.append({
-            "month": data["month"],
-            "growth": growth,
-            "direction": direction,
-        })
-    
-    return growth_data

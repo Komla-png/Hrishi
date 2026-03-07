@@ -77,20 +77,32 @@ def coaches():
 
 
 def _add_coach(cur, form):
-    """Add a new coach."""
+    """Add a new coach - prevent duplicates."""
+    name = form["name"].strip()
+    center_id = form["center_id"]
+    
+    # Check if coach with this name already exists in this center
     cur.execute("""
-        INSERT INTO coaches(name, center_id)
-        VALUES(?,?)
-    """, (form["name"], form["center_id"]))
+        SELECT id FROM coaches WHERE center_id = ? AND name = ?
+    """, (center_id, name))
+    
+    if not cur.fetchone():
+        # Only insert if coach doesn't exist
+        cur.execute("""
+            INSERT INTO coaches(name, center_id)
+            VALUES(?,?)
+        """, (name, center_id))
 
 
 def _edit_coach(cur, form):
-    """Edit coach name and center."""
+    """Edit coach name, center, and end date."""
     coach_id = form.get("coach_id")
+    end_month = form.get("end_month")
+    end_year = form.get("end_year")
     cur.execute("""
-        UPDATE coaches SET name=?, center_id=?
+        UPDATE coaches SET name=?, center_id=?, end_month=?, end_year=?
         WHERE id=?
-    """, (form["name"], form["center_id"], coach_id))
+    """, (form["name"], form["center_id"], end_month, end_year, coach_id))
 
 
 def _update_salary(cur, form, year):
@@ -100,23 +112,31 @@ def _update_salary(cur, form, year):
     salary_year = int(form.get("salary_year", year))
     salary = float(form.get("salary") or 0)
     
-    # Check if salary record exists
-    cur.execute("""
-        SELECT id FROM coach_salaries 
-        WHERE coach_id=? AND month=? AND year=?
-    """, (coach_id, salary_month, salary_year))
-    existing = cur.fetchone()
-    
-    if existing:
-        cur.execute("""
-            UPDATE coach_salaries SET salary=?
-            WHERE coach_id=? AND month=? AND year=?
-        """, (salary, coach_id, salary_month, salary_year))
-    else:
-        cur.execute("""
-            INSERT INTO coach_salaries(coach_id, month, year, salary)
-            VALUES(?,?,?,?)
-        """, (coach_id, salary_month, salary_year, salary))
+    # Sync salary for all months in the year
+    from utils import CALENDAR_MONTHS
+    # Get coach's end_month and end_year
+    cur.execute("SELECT end_month, end_year FROM coaches WHERE id=?", (coach_id,))
+    row = cur.fetchone()
+    end_month = row[0] if row else None
+    end_year = row[1] if row else None
+    from utils import CALENDAR_MONTHS
+    # Sync salary (any value) from selected month to all following months, previous months unchanged
+    start_idx = CALENDAR_MONTHS.index(salary_month)
+    for idx, m in enumerate(CALENDAR_MONTHS):
+        if idx >= start_idx:
+            set_salary = salary
+            # If end_year is set and this year > end_year, salary is 0
+            if end_year and salary_year > end_year:
+                set_salary = 0
+            # If end_year is set and this year == end_year and month is after end_month, salary is 0
+            if end_year and salary_year == end_year and end_month and CALENDAR_MONTHS.index(m) > CALENDAR_MONTHS.index(end_month):
+                set_salary = 0
+            
+            # Use INSERT OR REPLACE to prevent duplicates
+            cur.execute("""
+                INSERT OR REPLACE INTO coach_salaries(coach_id, month, year, salary)
+                VALUES(?,?,?,?)
+            """, (coach_id, m, salary_year, set_salary))
     
     # Auto-update target based on total salary for the center
     cur.execute("SELECT center_id FROM coaches WHERE id=?", (coach_id,))

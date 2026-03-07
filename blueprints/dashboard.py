@@ -10,58 +10,48 @@ dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route("/dashboard", methods=["GET", "POST"])
 @login_required
+
 def dashboard():
     """Main dashboard view with KPIs and revenue tracking."""
     conn = get_db()
     cur = conn.cursor()
     month = request.args.get("month", datetime.now().strftime("%B"))
     year = int(request.args.get("year", datetime.now().year))
+    sort = request.args.get("sort", "center")
 
     # ================= SAFE SAVE =================
     if request.method == "POST":
         # Auto-backup before any data modification
         create_backup("auto_dashboard")
-        
-        # Update center names safely
+        # ...existing code for POST unchanged...
         for key, val in request.form.items():
             if key.startswith("name"):
                 cid = key.replace("name", "")
                 cur.execute("UPDATE centers SET name=? WHERE id=?", (val, cid))
-
-        # Save revenue / target ONLY for centers that have data for this month
         cur.execute("""
             SELECT DISTINCT center_id FROM monthly_data 
             WHERE month=? AND year=?
         """, (month, year))
         centers_in_month = cur.fetchall()
-
         for c in centers_in_month:
             cid = c["center_id"]
-
             revenue_raw = request.form.get(f"revenue{cid}")
             target_raw = request.form.get(f"target{cid}")
-
             cur.execute("""
                 SELECT revenue, target FROM monthly_data
                 WHERE center_id=? AND month=? AND year=?
             """, (cid, month, year))
             existing = cur.fetchone()
-
             old_revenue = existing["revenue"] if existing else 0
             old_target = existing["target"] if existing else 0
-
             revenue = float(revenue_raw) if revenue_raw not in (None, "") else old_revenue
             target = float(target_raw) if target_raw not in (None, "") else old_target
-
             cur.execute("""
                 UPDATE monthly_data
                 SET revenue=?, target=?
                 WHERE center_id=? AND month=? AND year=?
             """, (revenue, target, cid, month, year))
-
         conn.commit()
-        
-        # If AJAX request, return JSON with updated data
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             centers_data = _calculate_centers_data(cur, year, month)
             monthly_kpis = _calculate_monthly_kpis(cur, year)
@@ -71,20 +61,38 @@ def dashboard():
                 "centers": centers_data,
                 "monthly_kpis": monthly_kpis
             })
-        
         return redirect(f"/dashboard?month={month}&year={year}")
 
     # ================= LOAD =================
     centers_data = _calculate_centers_data(cur, year, month)
+    # Sort centers_data based on sort param
+    if sort == "revenue":
+        centers_data.sort(key=lambda x: x["revenue"], reverse=True)
+    elif sort == "target":
+        centers_data.sort(key=lambda x: x["target"], reverse=True)
+    elif sort == "salary":
+        centers_data.sort(key=lambda x: x["salary_percent"], reverse=True)
+    elif sort == "achieved":
+        centers_data.sort(key=lambda x: x["achievement"], reverse=True)
+    else:
+        centers_data.sort(key=lambda x: x["name"].lower())
+    # Count only coaches with salary > 0 for the selected month/year
+    cur.execute("""
+        SELECT COUNT(DISTINCT coach_id) FROM coach_salaries
+        WHERE month = ? AND year = ? AND salary > 0
+    """, (month, year))
+    active_coach_count = cur.fetchone()[0] or 0
+
     monthly_kpis = _calculate_monthly_kpis(cur, year)
     conn.close()
-
     return render_template(
         "dashboard.html",
         centers=centers_data,
         month=month,
         year=year,
-        monthly_kpis=monthly_kpis
+        monthly_kpis=monthly_kpis,
+        sort=sort,
+        active_coach_count=active_coach_count
     )
 
 
@@ -187,12 +195,14 @@ def _calculate_monthly_kpis(cur, year):
             "total_target": row["total_target"] or 0,
         }
 
-    # Aggregate total salary per month
+    # Aggregate total salary per month (only for coaches with valid centers)
     cur.execute("""
-        SELECT month, SUM(salary) AS total_salary
-        FROM coach_salaries
-        WHERE year=?
-        GROUP BY month
+        SELECT cs.month, SUM(cs.salary) AS total_salary
+        FROM coach_salaries cs
+        JOIN coaches c ON cs.coach_id = c.id
+        JOIN centers ct ON c.center_id = ct.id
+        WHERE cs.year=?
+        GROUP BY cs.month
     """, (year,))
     sal_rows = cur.fetchall()
 
@@ -222,26 +232,38 @@ def _calculate_monthly_kpis(cur, year):
 # ================= CENTERS MANAGEMENT =================
 @dashboard_bp.route("/center/add", methods=["POST"])
 @login_required
+
 def add_center():
-    """Add a new center for the current month only."""
+    """Add a new center and auto-add to all months for the year."""
     # Auto-backup before adding center
     create_backup("auto_add_center")
-    
+
     name = sanitize_input(request.form.get("name")) or "New Center"
     month = request.args.get("month", datetime.now().strftime("%B"))
     year = int(request.args.get("year", datetime.now().year))
 
+    all_months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
+
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("INSERT INTO centers(name) VALUES(?)", (name,))
-    center_id = cur.lastrowid
-    
-    # Create monthly_data entry so center only appears in this month
-    cur.execute("""
-        INSERT INTO monthly_data(center_id, month, year, revenue, target)
-        VALUES(?, ?, ?, 0, 0)
-    """, (center_id, month, year))
-    
+    cur.execute("SELECT id FROM centers WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))", (name,))
+    existing_center = cur.fetchone()
+    if existing_center:
+        center_id = existing_center[0]
+    else:
+        cur.execute("INSERT INTO centers(name) VALUES(?)", (name,))
+        center_id = cur.lastrowid
+
+    # Create monthly_data entry for all months
+    for m in all_months:
+        cur.execute("""
+            INSERT OR IGNORE INTO monthly_data(center_id, month, year, revenue, target)
+            VALUES(?, ?, ?, 0, 0)
+        """, (center_id, m, year))
+
     conn.commit()
     conn.close()
 

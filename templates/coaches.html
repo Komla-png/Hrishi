@@ -747,15 +747,16 @@
 </head>
 <body>
 
-<div class="container">
+    <!-- Top navigation bar removed -->
+    <div class="container">
     <!-- Header -->
     <div class="header">
         <h1>🏋️ Coach Management</h1>
         <div class="header-actions">
             <a href="/dashboard?month={{ month }}&year={{ year }}" class="btn btn-dark">📊 Dashboard</a>
-            <a href="/analytics?year={{ year }}" class="btn btn-purple">📈 Analytics</a>
+            <a href="/analytics?year={{ year }}" class="btn" style="background: #3b82f6; color: white;">📈 Analytics</a>
             <a href="/leaves?year={{ year }}" class="btn" style="background: #f97316; color: white;">📅 Leaves</a>
-            <a href="/settings" class="btn" style="background: #8b5cf6; color: white;">👤 Account</a>
+            <a href="/settings" class="btn" style="background: #8b5cf6; color: white;">⚙️ Settings</a>
             <a href="/logout" class="btn btn-danger">🚪 Logout</a>
         </div>
     </div>
@@ -919,6 +920,19 @@
                                 <option value="{{ ctr.id }}" {% if ctr.id == c.center_id %}selected{% endif %}>{{ ctr.name }}</option>
                                 {% endfor %}
                             </select>
+                        </div>
+                        <div class="form-group">
+                            <label>End Month</label>
+                            <select name="end_month">
+                                <option value="">--</option>
+                                {% for m in calendar_months %}
+                                <option value="{{ m }}" {% if c.end_month == m %}selected{% endif %}>{{ m }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>End Year</label>
+                            <input type="number" name="end_year" min="2020" max="2100" value="{{ c.end_year or '' }}">
                         </div>
                         <button type="submit" class="btn btn-purple btn-sm">💾 Save</button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="toggleEdit({{ c.id }})">Cancel</button>
@@ -1135,6 +1149,25 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+});
+</script>
+<script>
+// Global night mode sync: applies theme from localStorage and listens for changes
+function applyThemeFromStorage() {
+    try {
+        const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
+        if (prefs.theme === 'light') {
+            document.body.classList.add('light-theme');
+            document.body.classList.remove('dark-theme');
+        } else {
+            document.body.classList.add('dark-theme');
+            document.body.classList.remove('light-theme');
+        }
+    } catch(e) {}
+}
+applyThemeFromStorage();
+window.addEventListener('storage', function(e) {
+    if (e.key === 'dashboardPreferences') applyThemeFromStorage();
 });
 </script>
 

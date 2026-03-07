@@ -1,0 +1,121 @@
+<div id="sidebar" class="sidebar">
+     <div class="sidebar-header">
+          <span class="sidebar-title">🏸 Academy</span>
+          <button id="sidebarToggle" class="sidebar-toggle">☰</button>
+     </div>
+     <nav class="sidebar-nav">
+          <a href="/dashboard" class="sidebar-link"><span class="sidebar-icon">📊</span><span class="sidebar-text">Dashboard</span></a>
+          <a href="/coaches" class="sidebar-link"><span class="sidebar-icon">🏋️</span><span class="sidebar-text">Coaches</span></a>
+          <a href="/analytics" class="sidebar-link"><span class="sidebar-icon">📈</span><span class="sidebar-text">Analytics</span></a>
+          <a href="/leaves" class="sidebar-link"><span class="sidebar-icon">🗓️</span><span class="sidebar-text">Leaves</span></a>
+          <a href="/settings" class="sidebar-link"><span class="sidebar-icon">⚙️</span><span class="sidebar-text">Settings</span></a>
+          <a href="/tasks" class="sidebar-link"><span class="sidebar-icon">✅</span><span class="sidebar-text">Tasks</span></a>
+          <a href="/centers" class="sidebar-link"><span class="sidebar-icon">🏢</span><span class="sidebar-text">View All Centers</span></a>
+     </nav>
+</div>
+<style>
+.sidebar {
+            padding: 10px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            transition: background 0.2s;
+        }
+        .btn:hover {
+            background: #059669;
+        }
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+            background: #f9fafb;
+        th, td {
+            padding: 14px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+            font-weight: 600;
+            color: #374151;
+        }
+        tr:last-child td {
+        .empty {
+            text-align: center;
+            color: #6b7280;
+            font-size: 1.1rem;
+            padding: 32px 0;
+        }
+    </style>
+</head>
+<body>
+            <span class="sidebar-title">🏸 Academy</span>
+            <button id="sidebarToggle" class="sidebar-toggle">☰</button>
+    <div class="container" style="margin-left:220px;">
+        <h2>Week Off Leave Records (2026)</h2>
+        <div class="actions-bar">
+            <a href="/leaves" class="btn">Back to Leave Management</a>
+            <a href="/leaves/weekoff" class="btn">View Week Off Records</a>
+                <div id="sidebar" class="sidebar">
+                    <div class="sidebar-header">
+                        <span class="sidebar-title">🏸 Academy</span>
+                        <button id="sidebarToggle" class="sidebar-toggle">☰</button>
+                    </div>
+                    <nav class="sidebar-nav">
+                        <a href="/dashboard" class="sidebar-link"><span class="sidebar-icon">📊</span><span class="sidebar-text">Dashboard</span></a>
+                        <a href="/coaches" class="sidebar-link"><span class="sidebar-icon">🏋️</span><span class="sidebar-text">Coaches</span></a>
+                        <a href="/analytics" class="sidebar-link"><span class="sidebar-icon">📈</span><span class="sidebar-text">Analytics</span></a>
+                        <a href="/leaves" class="sidebar-link"><span class="sidebar-icon">🗓️</span><span class="sidebar-text">Leaves</span></a>
+                        <a href="/settings" class="sidebar-link"><span class="sidebar-icon">⚙️</span><span class="sidebar-text">Settings</span></a>
+                        <a href="/tasks" class="sidebar-link"><span class="sidebar-icon">✅</span><span class="sidebar-text">Tasks</span></a>
+                        <a href="/centers" class="sidebar-link"><span class="sidebar-icon">🏢</span><span class="sidebar-text">View All Centers</span></a>
+                        <button id="themeToggle" class="sidebar-link" style="margin-top:18px;display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:none;font:inherit;outline:none;">
+                            <span class="sidebar-icon">🌙</span><span class="sidebar-text">Night Mode</span>
+                        </button>
+                    </nav>
+                </div>
+<script>
+// Theme toggle logic
+document.addEventListener('DOMContentLoaded', function() {
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            const isDark = document.body.classList.contains('dark-theme');
+            document.body.classList.toggle('dark-theme', !isDark);
+            document.body.classList.toggle('light-theme', isDark);
+            // Save preference
+            localStorage.setItem('dashboardPreferences', JSON.stringify({theme: isDark ? 'light' : 'dark'}));
+        });
+    }
+    // On load, set theme from localStorage
+    try {
+        const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
+        if (prefs.theme === 'light') {
+            document.body.classList.add('light-theme');
+            document.body.classList.remove('dark-theme');
+        } else {
+            document.body.classList.add('dark-theme');
+            document.body.classList.remove('light-theme');
+        }
+    } catch(e) {}
+});
+</script>
+                <div class="container" style="margin-left:220px;">
+            {% else %}
+            {% for leave in leaves %}
+            <tr>
+                <td>{{ leave[1] }}</td>
+                <td>{{ leave[2] }}</td>
+                <td>{{ leave[3] }}</td>
+                <td>{{ leave[5] }}</td>
+                <td>
+                    <form method="POST" action="/leaves/weekoff/delete/{{ leave[0] }}" style="display:inline;">
+                        <button type="submit" onclick="return confirm('Delete this Week Off leave record?')" class="btn btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+        </table>
+    </div>
+</body>
+</html>

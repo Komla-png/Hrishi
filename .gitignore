@@ -32,3 +32,16 @@ Thumbs.db
 # Backup files
 *.backup
 app_backup.py
+
+# Coverage/test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Runtime/generated data
+instance/logs/
+instance/uploads/
+
+# Project backup archives
+project_backups/
+*.zip

@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academy Dashboard</title>
+    <title>Hrishikesh Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 
     <style>
 body{
@@ -358,11 +359,33 @@ input{
 
 /* Chart box */
 .chart-box{
-    margin-top:20px;
-    background:white;
-    padding:15px;
-    border-radius:10px;
-    box-shadow:0 3px 10px rgba(0,0,0,0.1);
+    margin-top:30px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: 28px;
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-box:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.chart-box h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.3px;
+}
+
+#chart {
+    max-height: 400px;
+    transition: opacity 0.3s ease;
 }
 
 /* SMART KPI COLORS */
@@ -377,6 +400,8 @@ input{
 .kpi-red {
     border-left: 6px solid #dc2626;
 }
+
+
 
 /* Progress bar */
 .progress-bar {
@@ -911,8 +936,17 @@ body.dark-theme .kpi-card.current-month {
 }
 
 body.dark-theme .chart-box {
-    background: #0f172a;
-    border: 1px solid #374151;
+    background: linear-gradient(135deg, #1a1a1a 0%, #0f172a 100%);
+    border: 1px solid #334155;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.2);
+}
+
+body.dark-theme .chart-box:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.25);
+}
+
+body.dark-theme .chart-box h2 {
+    color: #f1f5f9;
 }
 
 body.dark-theme .modal-content {
@@ -1221,7 +1255,137 @@ body.dark-theme .btn-cancel-settings {
 </style>
 </head>
 
+
 <body>
+<div id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+        <span class="sidebar-title">🏸 Hrishikesh</span>
+        <button id="sidebarToggle" class="sidebar-toggle">☰</button>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/dashboard" class="sidebar-link"><span class="sidebar-icon">📊</span><span class="sidebar-text">Dashboard</span></a>
+        <a href="/coaches" class="sidebar-link"><span class="sidebar-icon">🏋️</span><span class="sidebar-text">Coaches</span></a>
+        <a href="/analytics" class="sidebar-link"><span class="sidebar-icon">📈</span><span class="sidebar-text">Analytics</span></a>
+        <a href="/leaves" class="sidebar-link"><span class="sidebar-icon">🗓️</span><span class="sidebar-text">Leaves</span></a>
+        <a href="/tasks" class="sidebar-link"><span class="sidebar-icon">✅</span><span class="sidebar-text">Tasks</span></a>
+        <a href="/backups" class="sidebar-link"><span class="sidebar-icon">🗄️</span><span class="sidebar-text">Backups</span></a>
+        <a href="/centers" class="sidebar-link"><span class="sidebar-icon">🏢</span><span class="sidebar-text">All Centers</span></a>
+        <a href="/settings" class="sidebar-link"><span class="sidebar-icon">⚙️</span><span class="sidebar-text">Settings</span></a>
+        <button id="themeToggle" class="sidebar-link" style="margin-top:18px;display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:none;font:inherit;outline:none;">
+            <span class="sidebar-icon">🌙</span><span class="sidebar-text">Night Mode</span>
+        </button>
+    </nav>
+
+<script>
+// Theme toggle logic
+document.addEventListener('DOMContentLoaded', function() {
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            const isDark = document.body.classList.contains('dark-theme');
+            document.body.classList.toggle('dark-theme', !isDark);
+            document.body.classList.toggle('light-theme', isDark);
+            // Save preference
+            let prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
+            prefs.theme = isDark ? 'light' : 'dark';
+            localStorage.setItem('dashboardPreferences', JSON.stringify(prefs));
+        });
+    }
+    // On load, set theme from localStorage
+    try {
+        const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
+        if (prefs.theme === 'light') {
+            document.body.classList.add('light-theme');
+            document.body.classList.remove('dark-theme');
+        } else {
+            document.body.classList.add('dark-theme');
+            document.body.classList.remove('light-theme');
+        }
+    } catch(e) {}
+});
+</script>
+</div>
+
+<style>
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 220px;
+    background: #1e293b;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    z-index: 2001;
+    transition: width 0.2s;
+}
+    .sidebar.collapsed { width: 60px; }
+    .sidebar.collapsed .sidebar-title { display: none; }
+    .sidebar.collapsed .sidebar-text { display: none; }
+    .sidebar.collapsed .sidebar-link { justify-content: center; padding: 12px 0; font-size: 22px; }
+    .sidebar.collapsed .sidebar-icon { font-size: 22px; }
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 16px 12px 16px;
+}
+.sidebar-title { font-size: 20px; font-weight: bold; }
+.sidebar-toggle {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
+}
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 20px;
+}
+.sidebar-link {
+    color: #fff;
+    text-decoration: none;
+    padding: 12px 24px;
+    border-radius: 8px 0 0 8px;
+    font-size: 16px;
+    transition: background 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.sidebar-link:hover, .sidebar-link.active {
+    background: #3b82f6;
+    color: #fff;
+}
+.sidebar.collapsed .sidebar-title { display: none; }
+.sidebar.collapsed .sidebar-link { justify-content: center; padding: 12px 0; font-size: 20px; }
+.sidebar.collapsed .sidebar-link span { display: none; }
+    .container { margin-left: 220px; transition: margin-left 0.2s; }
+    #sidebar.collapsed ~ .container, .sidebar.collapsed ~ .container { margin-left: 60px !important; }
+@media (max-width: 900px) {
+    .sidebar { position: fixed; width: 60px; }
+    .container { margin-left: 60px; }
+}
+.sidebar-logout {
+    margin-top: auto;
+    padding: 20px 0 16px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+</style>
+
+<script>
+const sidebar = document.getElementById('sidebar');
+const sidebarToggle = document.getElementById('sidebarToggle');
+    sidebarToggle.onclick = function() {
+        sidebar.classList.toggle('collapsed');
+        document.querySelector('.container').style.marginLeft = sidebar.classList.contains('collapsed') ? '60px' : '220px';
+    };
+</script>
 
 <!-- Flash Messages -->
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -1246,14 +1410,15 @@ body.dark-theme .btn-cancel-settings {
 <div class="container">
 
 <div class="top-bar">
-    <h2>🏸 Centers Performance </h2>
-
-    <div style="display: flex; align-items: center; gap: 15px;">
+    <h2>🏸 Centers Performance</h2>
+    <div style="display: flex; align-items: center; gap: 25px;">
+        <div style="background: #10b981; color: white; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+            👨‍🏫 Active Coaches: <span id="activeCoachCount">{{ active_coach_count }}</span>
+        </div>
         <div id="saveIndicator" class="save-indicator saved">Saved</div>
-        
         <!-- Year Selector -->
         <select id="yearSelector" onchange="window.location.href='/dashboard?month={{ month }}&year='+this.value" style="padding: 8px 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-weight: 600; cursor: pointer;">
-            {% for y in range(2024, 2031) %}
+            {% for y in range(2023, 2031) %}
             <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
             {% endfor %}
         </select>
@@ -1261,7 +1426,7 @@ body.dark-theme .btn-cancel-settings {
 </div>
 
 <!-- ================= KPI CALENDAR (MONTHLY) ================= -->
-<div class="kpi-section-title" data-widget="kpi-calendar">📅 Monthly Performance Dashboard</div>
+<div class="kpi-section-title" data-widget="kpi-calendar">📅 Monthly Performance</div>
 <div class="kpi-calendar" data-widget="kpi-calendar">
     {% for k in monthly_kpis %}
     {% set status = 'excellent' if k.achieved_percent >= 100 else ('good' if k.achieved_percent >= 80 else ('poor' if k.achieved_percent > 0 else 'no-data')) %}
@@ -1302,20 +1467,23 @@ body.dark-theme .btn-cancel-settings {
 
 <!-- ================= CHART ================= -->
 <div class="chart-box" data-widget="revenue-chart">
-<h2>📊 Revenue vs Target</h2>
-<canvas id="chart"></canvas>
+    <h2>📊 Revenue vs Target</h2>
+    <canvas id="chart"></canvas>
 </div>
 
 <form id="dashboardForm" method="POST" action="/dashboard?month={{ month }}&year={{ year }}" data-widget="centers-table">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+
+
+
 <table>
 <tr>
-    <th>Center</th>
-    <th>Revenue</th>
-    <th>Target</th>
-    <th>Salary % (max 30%)</th>
-    <th>Achieved %</th>
+    <th class="sortable" data-sort-key="center">Center <span class="sort-arrow"></span></th>
+    <th class="sortable" data-sort-key="revenue">Revenue <span class="sort-arrow"></span></th>
+    <th class="sortable" data-sort-key="target">Target <span class="sort-arrow"></span></th>
+    <th class="sortable" data-sort-key="salary_percent">Salary % <span class="sort-arrow"></span></th>
+    <th class="sortable" data-sort-key="achievement">Achieved % <span class="sort-arrow"></span></th>
     <th style="min-width: 180px;">Actions</th>
 </tr>
 
@@ -1359,6 +1527,161 @@ body.dark-theme .btn-cancel-settings {
 {% endfor %}
 
 </table>
+</form>
+
+<script>
+// --- Reusable Table Sorting + Chart Sync + Persistence ---
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.querySelector('form[data-widget="centers-table"] table');
+    if (!table) return;
+    const headers = table.querySelectorAll('th.sortable');
+    // Load sort state from localStorage
+    let sortState = JSON.parse(localStorage.getItem('dashboardTableSort') || 'null') || { key: null, dir: 1 };
+
+    // Helper: get cell value by key
+    function getCellValue(row, key) {
+        switch (key) {
+            case 'center':
+                return row.querySelector('input[name^="name"]').value.trim();
+            case 'revenue':
+                return parseFloat(row.querySelector('input[name^="revenue"]').value) || 0;
+            case 'target':
+                return parseFloat(row.querySelector('input[name^="target"]').value) || 0;
+            case 'salary_percent':
+                return parseFloat(row.querySelector('[id^="salary_percent_"]').textContent) || 0;
+            case 'achievement':
+                return parseFloat(row.querySelector('[id^="achievement_"]').textContent) || 0;
+            default:
+                return '';
+        }
+    }
+
+    // Helper: detect type (number/text)
+    function detectType(key) {
+        return ['revenue','target','salary_percent','achievement'].includes(key) ? 'number' : 'text';
+    }
+
+    // Helper: update arrow indicators
+    function updateArrows() {
+        headers.forEach(th => {
+            const arrow = th.querySelector('.sort-arrow');
+            if (th.dataset.sortKey === sortState.key) {
+                arrow.textContent = sortState.dir === 1 ? '▲' : '▼';
+                th.classList.add('sorted');
+            } else {
+                arrow.textContent = '';
+                th.classList.remove('sorted');
+            }
+        });
+    }
+
+    // Chart sync helper
+    function syncChartWithTable() {
+        if (typeof revenueTargetChart !== 'undefined') {
+            const rows = Array.from(table.querySelectorAll('tbody tr')).filter(r => r.querySelector('input,td'));
+            revenueTargetChart.data.labels = rows.map(row => getCellValue(row, 'center'));
+            
+            // Update global arrays
+            revenue = rows.map(row => getCellValue(row, 'revenue'));
+            target = rows.map(row => getCellValue(row, 'target'));
+            
+            // Calculate bullet chart segments and update global bulletData
+            bulletData = rows.map(row => {
+                const rev = getCellValue(row, 'revenue');
+                const tgt = getCellValue(row, 'target');
+                const achieved = Math.min(rev, tgt);
+                const remaining = Math.max(0, tgt - rev);
+                const exceeded = Math.max(0, rev - tgt);
+                return { achieved, remaining, exceeded, revenue: rev, target: tgt };
+            });
+            
+            revenueTargetChart.data.datasets[0].data = bulletData.map(d => d.achieved);
+            revenueTargetChart.data.datasets[1].data = bulletData.map(d => d.remaining);
+            revenueTargetChart.data.datasets[2].data = bulletData.map(d => d.exceeded);
+            revenueTargetChart.update();
+        }
+    }
+
+    // Sort table rows by current sortState
+    function applySortFromState() {
+        if (!sortState.key) return;
+        const key = sortState.key;
+        const type = detectType(key);
+        const rows = Array.from(table.querySelectorAll('tbody tr')).filter(r => r.querySelector('input,td'));
+        rows.sort((a, b) => {
+            let va = getCellValue(a, key);
+            let vb = getCellValue(b, key);
+            if (type === 'number') {
+                return (va - vb) * sortState.dir;
+            } else {
+                return va.localeCompare(vb) * sortState.dir;
+            }
+        });
+        const tbody = table.querySelector('tbody') || table;
+        rows.forEach(row => tbody.appendChild(row));
+        updateArrows();
+        syncChartWithTable();
+    }
+
+    // Main sort handler
+    headers.forEach(th => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', function() {
+            const key = th.dataset.sortKey;
+            if (sortState.key === key) {
+                sortState.dir *= -1;
+            } else {
+                sortState.key = key;
+                sortState.dir = 1;
+            }
+            localStorage.setItem('dashboardTableSort', JSON.stringify(sortState));
+            const type = detectType(key);
+            const rows = Array.from(table.querySelectorAll('tbody tr')).filter(r => r.querySelector('input,td'));
+            rows.sort((a, b) => {
+                let va = getCellValue(a, key);
+                let vb = getCellValue(b, key);
+                if (type === 'number') {
+                    return (va - vb) * sortState.dir;
+                } else {
+                    return va.localeCompare(vb) * sortState.dir;
+                }
+            });
+            // Animate: fade out, reorder, fade in
+            rows.forEach(row => { row.style.transition = 'opacity 0.2s'; row.style.opacity = 0; });
+            setTimeout(() => {
+                const tbody = table.querySelector('tbody') || table;
+                rows.forEach(row => tbody.appendChild(row));
+                rows.forEach(row => { row.style.opacity = 1; });
+                syncChartWithTable();
+            }, 200);
+            updateArrows();
+        });
+    });
+
+    // On page load, apply last sort
+    applySortFromState();
+});
+</script>
+
+<style>
+.sortable { user-select: none; position: relative; transition: background 0.2s; }
+.sortable.sorted { background: #334155 !important; }
+.sort-arrow { font-size: 0.9em; margin-left: 4px; transition: color 0.2s; }
+tbody tr { transition: background 0.2s, opacity 0.2s; }
+
+/* Premium Bar Enhancement - Bottom to Top Shimmer */
+@keyframes bottomToTopShimmer {
+    0% {
+        box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 24px rgba(139, 92, 246, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    }
+}
+</style>
 
 <br>
 <center>
@@ -1473,10 +1796,113 @@ body.dark-theme .btn-cancel-settings {
 })();
 
 const labels = [{% for c in centers %}"{{c.name}}",{% endfor %}];
-const revenue = [{% for c in centers %}{{c.revenue}},{% endfor %}];
-const target = [{% for c in centers %}{{c.target}},{% endfor %}];
+let revenue = [{% for c in centers %}{{c.revenue}},{% endfor %}];
+let target = [{% for c in centers %}{{c.target}},{% endfor %}];
+
+// Calculate bullet chart segments
+let bulletData = revenue.map((rev, idx) => {
+    const tgt = target[idx];
+    const achieved = Math.min(rev, tgt); // Achieved is capped at target
+    const remaining = Math.max(0, tgt - rev); // Remaining only if under target
+    const exceeded = Math.max(0, rev - tgt); // Exceeded only if over target
+    return { achieved, remaining, exceeded, revenue: rev, target: tgt };
+});
 
 const ctx = document.getElementById('chart').getContext('2d');
+
+// Register datalabels plugin
+Chart.register(ChartDataLabels);
+
+function achievedRevenueGradient(context) {
+    const chart = context.chart;
+    const area = chart.chartArea;
+
+    // During first layout pass chartArea is undefined.
+    if (!area) return '#10b981';
+
+    const gradient = chart.ctx.createLinearGradient(0, area.bottom, 0, area.top);
+    gradient.addColorStop(0, '#2563eb');
+    gradient.addColorStop(0.5, '#06b6d4');
+    gradient.addColorStop(1, '#f59e0b');
+    return gradient;
+}
+
+const achievedBarShimmerOverlay = {
+    id: 'achievedBarShimmerOverlay',
+    afterDatasetsDraw(chart) {
+        if (!chart.chartArea) return;
+
+        const ctx = chart.ctx;
+        const meta = chart.getDatasetMeta(0); // Achieved Revenue only
+        const t = (Date.now() % 2100) / 2100;
+
+        if (!meta || !meta.data) return;
+
+        meta.data.forEach((bar) => {
+            const props = bar.getProps(['x', 'y', 'base', 'width'], true);
+            const x = props.x;
+            const width = props.width;
+            const top = Math.min(props.y, props.base);
+            const height = Math.abs(props.base - props.y);
+
+            if (!height || !width) return;
+
+            const stripeHeight = Math.max(24, height);
+            const stripeY = props.base - (height + stripeHeight) * t;
+            const stripeY2 = props.base - (height + stripeHeight) * ((t + 0.5) % 1);
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x - width / 2, top, width, height);
+            ctx.clip();
+
+            const shimmer = ctx.createLinearGradient(
+                x,
+                stripeY + stripeHeight,
+                x,
+                stripeY
+            );
+            shimmer.addColorStop(0, 'rgba(37, 99, 235, 0.06)');
+            shimmer.addColorStop(0.22, 'rgba(37, 99, 235, 0.24)');
+            shimmer.addColorStop(0.5, 'rgba(6, 182, 212, 0.3)');
+            shimmer.addColorStop(0.76, 'rgba(245, 158, 11, 0.28)');
+            shimmer.addColorStop(1, 'rgba(245, 158, 11, 0.09)');
+
+            ctx.globalCompositeOperation = 'screen';
+            const ambient = ctx.createLinearGradient(x, props.base, x, top);
+            ambient.addColorStop(0, 'rgba(37, 99, 235, 0.05)');
+            ambient.addColorStop(0.5, 'rgba(6, 182, 212, 0.06)');
+            ambient.addColorStop(1, 'rgba(245, 158, 11, 0.08)');
+            ctx.fillStyle = ambient;
+            ctx.fillRect(x - width / 2, top, width, height);
+
+            ctx.shadowColor = 'rgba(6, 182, 212, 0.2)';
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = shimmer;
+            ctx.fillRect(x - width / 2, stripeY, width, stripeHeight);
+
+            const shimmer2 = ctx.createLinearGradient(
+                x,
+                stripeY2 + stripeHeight,
+                x,
+                stripeY2
+            );
+            shimmer2.addColorStop(0, 'rgba(245, 158, 11, 0.05)');
+            shimmer2.addColorStop(0.28, 'rgba(245, 158, 11, 0.2)');
+            shimmer2.addColorStop(0.58, 'rgba(6, 182, 212, 0.23)');
+            shimmer2.addColorStop(0.84, 'rgba(37, 99, 235, 0.21)');
+            shimmer2.addColorStop(1, 'rgba(37, 99, 235, 0.05)');
+            ctx.shadowColor = 'rgba(37, 99, 235, 0.18)';
+            ctx.shadowBlur = 7;
+            ctx.fillStyle = shimmer2;
+            ctx.fillRect(x - width / 2, stripeY2, width, stripeHeight);
+
+            ctx.restore();
+        });
+    }
+};
+
+Chart.register(achievedBarShimmerOverlay);
 
 const revenueTargetChart = new Chart(ctx, {
     type: 'bar',
@@ -1484,27 +1910,172 @@ const revenueTargetChart = new Chart(ctx, {
         labels: labels,
         datasets: [
             {
-                label: 'Revenue',
-                data: revenue,
-                backgroundColor: '#3b82f6'
+                label: '✅ Achieved Revenue',
+                data: bulletData.map(d => d.achieved),
+                backgroundColor: achievedRevenueGradient,
+                borderColor: '#059669',
+                borderWidth: 1,
+                borderRadius: 10,
+                borderSkipped: false
             },
             {
-                label: 'Target',
-                data: target,
-                backgroundColor: '#ef4444'
+                label: '⏳ Remaining Target',
+                data: bulletData.map(d => d.remaining),
+                backgroundColor: 'rgba(203, 213, 225, 0.7)',
+                borderColor: '#cbd5e1',
+                borderWidth: 0,
+                borderRadius: 4
+            },
+            {
+                label: '🎯 Exceeded Revenue',
+                data: bulletData.map(d => d.exceeded),
+                backgroundColor: 'rgba(245, 158, 11, 0.85)',
+                borderColor: '#d97706',
+                borderWidth: 0,
+                borderRadius: 4
             }
         ]
     },
     options: {
         responsive: true,
+        maintainAspectRatio: true,
         plugins: {
-            legend: { position: 'top' }
+            legend: { 
+                position: 'top',
+                align: 'end',
+                labels: {
+                    boxWidth: 14,
+                    boxHeight: 8,
+                    padding: 20,
+                    font: { size: 12, weight: '600', family: "'Inter', 'Segoe UI', Arial, sans-serif" },
+                    color: '#475569',
+                    usePointStyle: true,
+                    pointStyle: 'rect'
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                padding: 14,
+                titleFont: { size: 13, weight: '700' },
+                bodyFont: { size: 12, weight: '500' },
+                borderColor: '#e2e8f0',
+                borderWidth: 1,
+                displayColors: true,
+                callbacks: {
+                    title: function(context) {
+                        return context[0].label;
+                    },
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) label += ' ';
+                        label += '₹' + context.parsed.y.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+                        return label;
+                    },
+                    afterBody: function(context) {
+                        const row = context[0];
+                        if (row.dataIndex !== undefined) {
+                            const idx = row.dataIndex;
+                            const data = bulletData[idx];
+                            const lines = [];
+                            lines.push('Revenue: ₹' + data.revenue.toLocaleString('en-IN', { maximumFractionDigits: 0 }));
+                            lines.push('Target: ₹' + data.target.toLocaleString('en-IN', { maximumFractionDigits: 0 }));
+                            if (data.target > 0) {
+                                const percent = ((data.revenue / data.target) * 100).toFixed(1);
+                                lines.push('Achievement: ' + percent + '%');
+                            }
+                            return lines;
+                        }
+                    }
+                }
+            },
+            datalabels: {
+                display: function(context) {
+                    // Only show labels on the first dataset (Achieved Revenue)
+                    return context.datasetIndex === 0;
+                },
+                align: 'top',
+                anchor: 'end',
+                offset: 0,
+                font: {
+                    size: 11,
+                    weight: 'bold',
+                    family: "'Inter', 'Segoe UI', Arial, sans-serif"
+                },
+                color: '#1e293b',
+                formatter: function(value, context) {
+                    if (value === 0) return '';
+                    const idx = context.dataIndex;
+                    const data = bulletData[idx];
+                    if (data.target > 0) {
+                        const percent = ((data.revenue / data.target) * 100).toFixed(0);
+                        return percent + '%';
+                    }
+                    return '';
+                },
+                listeners: {
+                    enter: function(context) {
+                        context.active = true;
+                    },
+                    leave: function(context) {
+                        context.active = false;
+                    }
+                }
+            }
         },
         scales: {
-            y: { beginAtZero: true }
+            y: { 
+                stacked: true,
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(226, 232, 240, 0.3)',
+                    drawBorder: false,
+                    lineWidth: 1
+                },
+                ticks: {
+                    callback: function(value) {
+                        if (value >= 100000) return '₹' + (value/100000).toFixed(0) + 'L';
+                        if (value >= 1000) return '₹' + (value/1000).toFixed(0) + 'K';
+                        return '₹' + value;
+                    },
+                    font: { size: 11, weight: '500' },
+                    color: '#64748b',
+                    padding: 10
+                }
+            },
+            x: { 
+                stacked: true,
+                grid: {
+                    display: false,
+                    drawBorder: false
+                },
+                ticks: {
+                    font: { size: 12, weight: '600' },
+                    color: '#1e293b',
+                    padding: 8
+                }
+            }
         }
     }
 });
+
+let achievedBarsAnimId = null;
+let achievedBarsLastFrame = 0;
+
+function animateAchievedBars(now) {
+    if (now - achievedBarsLastFrame > 33) {
+        revenueTargetChart.draw();
+        achievedBarsLastFrame = now;
+    }
+    achievedBarsAnimId = requestAnimationFrame(animateAchievedBars);
+}
+
+achievedBarsAnimId = requestAnimationFrame(animateAchievedBars);
+
+window.addEventListener('beforeunload', () => {
+    if (achievedBarsAnimId) cancelAnimationFrame(achievedBarsAnimId);
+});
+
+
 
 // ================= AUTO SAVE (DEBOUNCED) =================
 const form = document.getElementById('dashboardForm');
@@ -1526,6 +2097,15 @@ function applyServerUpdate(payload) {
         payload.centers.forEach(c => {
             const achEl = document.getElementById(`achievement_${c.id}`);
             const salEl = document.getElementById(`salary_percent_${c.id}`);
+            const nameInput = document.querySelector(`input[name="name${c.id}"]`);
+            const revenueInput = document.querySelector(`input[name="revenue${c.id}"]`);
+            const targetInput = document.querySelector(`input[name="target${c.id}"]`);
+
+            // Keep table row values aligned with server truth, but do not interrupt current typing.
+            if (nameInput && document.activeElement !== nameInput) nameInput.value = c.name;
+            if (revenueInput && document.activeElement !== revenueInput) revenueInput.value = c.revenue;
+            if (targetInput && document.activeElement !== targetInput) targetInput.value = c.target;
+
             if (achEl) achEl.textContent = `${c.achievement} %`;
             if (salEl) {
                 salEl.textContent = `${c.salary_percent} %${c.salary_percent > 30 ? ' ⚠️' : ''}`;
@@ -1533,10 +2113,37 @@ function applyServerUpdate(payload) {
             }
         });
 
-        // Update chart to reflect latest center values/names
-        revenueTargetChart.data.labels = payload.centers.map(c => c.name);
-        revenueTargetChart.data.datasets[0].data = payload.centers.map(c => c.revenue);
-        revenueTargetChart.data.datasets[1].data = payload.centers.map(c => c.target);
+        // Rebuild chart from visible table order so chart and table always stay in sync.
+        const table = document.querySelector('#dashboardForm table');
+        const tableRows = table ? Array.from(table.querySelectorAll('tr')) : [];
+        const visibleRows = tableRows.filter(row => row.querySelector('input[name^="name"]'));
+
+        revenueTargetChart.data.labels = visibleRows.map(row => {
+            const input = row.querySelector('input[name^="name"]');
+            return (input?.value || '').trim();
+        });
+
+        revenue = visibleRows.map(row => {
+            const input = row.querySelector('input[name^="revenue"]');
+            return parseFloat(input?.value) || 0;
+        });
+
+        target = visibleRows.map(row => {
+            const input = row.querySelector('input[name^="target"]');
+            return parseFloat(input?.value) || 0;
+        });
+
+        bulletData = revenue.map((rev, idx) => {
+            const tgt = target[idx];
+            const achieved = Math.min(rev, tgt);
+            const remaining = Math.max(0, tgt - rev);
+            const exceeded = Math.max(0, rev - tgt);
+            return { achieved, remaining, exceeded, revenue: rev, target: tgt };
+        });
+        
+        revenueTargetChart.data.datasets[0].data = bulletData.map(d => d.achieved);
+        revenueTargetChart.data.datasets[1].data = bulletData.map(d => d.remaining);
+        revenueTargetChart.data.datasets[2].data = bulletData.map(d => d.exceeded);
         revenueTargetChart.update();
     }
 
@@ -1721,7 +2328,7 @@ const defaultPreferences = {
     'show-kpi-calendar': true,
     'show-revenue-chart': true,
     'show-centers-table': true,
-    'dark-theme': true,
+    'theme': 'dark',
     'layout-mode': 'layout-normal'
 };
 
@@ -1731,7 +2338,7 @@ function loadPreferences() {
     const prefs = saved ? JSON.parse(saved) : defaultPreferences;
     
     // Apply theme
-    const isDark = prefs['dark-theme'] !== false;
+    const isDark = (prefs.theme !== 'light');
     document.body.classList.toggle('dark-theme', isDark);
     document.body.classList.toggle('light-theme', !isDark);
     updateThemeToggle(isDark);
@@ -1779,6 +2386,10 @@ function toggleSetting(element, key) {
         const isDark = element.classList.contains('active');
         document.body.classList.toggle('dark-theme', isDark);
         document.body.classList.toggle('light-theme', !isDark);
+        // Save theme preference
+        let prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
+        prefs.theme = isDark ? 'dark' : 'light';
+        localStorage.setItem('dashboardPreferences', JSON.stringify(prefs));
     }
     // Apply changes immediately for widgets
     else if (key.startsWith('show-')) {
@@ -1809,7 +2420,7 @@ function saveAndCloseSettings() {
         'show-kpi-calendar': document.querySelector('[onclick*="show-kpi-calendar"]').classList.contains('active'),
         'show-revenue-chart': document.querySelector('[onclick*="show-revenue-chart"]').classList.contains('active'),
         'show-centers-table': document.querySelector('[onclick*="show-centers-table"]').classList.contains('active'),
-        'dark-theme': document.querySelector('[onclick*="dark-theme"]').classList.contains('active'),
+        'theme': document.querySelector('[onclick*="dark-theme"]').classList.contains('active') ? 'dark' : 'light',
         'layout-mode': document.getElementById('layoutSelect').value
     };
     
@@ -1826,6 +2437,10 @@ function resetSettings() {
             toggle.classList.add('active');
         });
         document.querySelector('[onclick*="dark-theme"]').classList.add('active');
+        // Set theme to dark
+        let prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
+        prefs.theme = 'dark';
+        localStorage.setItem('dashboardPreferences', JSON.stringify(prefs));
         document.getElementById('layoutSelect').value = 'layout-normal';
     }
 }
@@ -1864,25 +2479,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- Bottom Navigation Bar -->
-<nav class="bottom-nav">
-    <a href="/analytics?year={{ year }}">
-        <button class="nav-btn analytics">📊 Analytics</button>
-    </a>
-    <a href="/coaches?month={{ month }}&year={{ year }}">
-        <button class="nav-btn coaches">🏋️ Coaches</button>
-    </a>
-    <a href="/leaves?year={{ year }}">
-        <button class="nav-btn leaves">📅 Leaves</button>
-    </a>
-    <a href="/settings">
-        <button class="nav-btn account">👤 Account</button>
-    </a>
-    <button class="nav-btn settings" onclick="openSettings()">⚙️ Settings</button>
-    <a href="/logout">
-        <button class="nav-btn logout">🚪 Logout</button>
-    </a>
-</nav>
+
 
 </body>
 </html>

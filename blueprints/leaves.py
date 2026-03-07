@@ -8,7 +8,7 @@ from utils import get_db, login_required, CALENDAR_MONTHS, create_backup
 leaves_bp = Blueprint('leaves', __name__)
 
 # Leave types
-LEAVE_TYPES = ['Casual', 'Sick', 'Paid', 'Unpaid', 'Week Off', 'OT', 'Emergency', 'Other']
+LEAVE_TYPES = ['Paid', 'Unpaid', 'OT', 'Week Off']
 
 
 def calculate_days(from_date_str, to_date_str):
@@ -32,6 +32,7 @@ def leaves():
     selected_month = request.args.get("month", "All")
     selected_coach = request.args.get("coach", "")
     selected_center = request.args.get("center", "")
+    selected_duration = request.args.get("duration", "All")
     
     if request.method == "POST":
         action = request.form.get("action")
@@ -53,13 +54,14 @@ def leaves():
             conn.commit()
         
         # Preserve filters in redirect
-        return redirect(f"/leaves?year={year}&month={selected_month}&coach={selected_coach}&center={selected_center}")
+        return redirect(f"/leaves?year={year}&month={selected_month}&coach={selected_coach}&center={selected_center}&duration={selected_duration}")
 
     # Build query with filters
     query = """
         SELECT cl.id, cl.coach_id, c.name as coach_name, ct.name as center_name,
-               cl.from_date, cl.to_date, cl.leave_type, cl.remarks, cl.created_at,
-               CAST(julianday(cl.to_date) - julianday(cl.from_date) + 1 AS INTEGER) as days
+               cl.from_date, cl.to_date, cl.leave_type, cl.leave_duration, cl.remarks, cl.created_at,
+               ROUND((julianday(cl.to_date) - julianday(cl.from_date) + 1) *
+                     CASE WHEN cl.leave_duration = 'half_day' THEN 0.5 ELSE 1 END, 1) as days
         FROM coach_leaves cl
         JOIN coaches c ON cl.coach_id = c.id
         JOIN centers ct ON c.center_id = ct.id
@@ -80,6 +82,10 @@ def leaves():
     if selected_center:
         query += " AND c.center_id = ?"
         params.append(int(selected_center))
+
+    if selected_duration and selected_duration != "All":
+        query += " AND cl.leave_duration = ?"
+        params.append(selected_duration)
     
     query += " ORDER BY cl.from_date DESC"
     
@@ -102,11 +108,11 @@ def leaves():
     cur.execute("""
         SELECT c.id, c.name, ct.name as center_name, 
                COUNT(cl.id) as total_leaves,
-               SUM(CASE WHEN cl.leave_type = 'Unpaid' THEN julianday(cl.to_date) - julianday(cl.from_date) + 1 ELSE 0 END) as lop_days,
-               SUM(CASE WHEN cl.leave_type NOT IN ('Unpaid', 'Week Off', 'OT') THEN julianday(cl.to_date) - julianday(cl.from_date) + 1 ELSE 0 END) as approved_days,
-               SUM(CASE WHEN cl.leave_type NOT IN ('Week Off', 'OT') THEN julianday(cl.to_date) - julianday(cl.from_date) + 1 ELSE 0 END) as total_days,
-               SUM(CASE WHEN cl.leave_type = 'Week Off' THEN julianday(cl.to_date) - julianday(cl.from_date) + 1 ELSE 0 END) as weekoff_days,
-               SUM(CASE WHEN cl.leave_type = 'OT' THEN julianday(cl.to_date) - julianday(cl.from_date) + 1 ELSE 0 END) as ot_days
+             SUM(CASE WHEN cl.leave_type = 'Unpaid' THEN (julianday(cl.to_date) - julianday(cl.from_date) + 1) * CASE WHEN cl.leave_duration = 'half_day' THEN 0.5 ELSE 1 END ELSE 0 END) as lop_days,
+             SUM(CASE WHEN cl.leave_type NOT IN ('Unpaid', 'Week Off', 'OT') THEN (julianday(cl.to_date) - julianday(cl.from_date) + 1) * CASE WHEN cl.leave_duration = 'half_day' THEN 0.5 ELSE 1 END ELSE 0 END) as approved_days,
+             SUM(CASE WHEN cl.leave_type NOT IN ('Week Off', 'OT') THEN (julianday(cl.to_date) - julianday(cl.from_date) + 1) * CASE WHEN cl.leave_duration = 'half_day' THEN 0.5 ELSE 1 END ELSE 0 END) as total_days,
+             SUM(CASE WHEN cl.leave_type = 'Week Off' THEN (julianday(cl.to_date) - julianday(cl.from_date) + 1) * CASE WHEN cl.leave_duration = 'half_day' THEN 0.5 ELSE 1 END ELSE 0 END) as weekoff_days,
+             SUM(CASE WHEN cl.leave_type = 'OT' THEN (julianday(cl.to_date) - julianday(cl.from_date) + 1) * CASE WHEN cl.leave_duration = 'half_day' THEN 0.5 ELSE 1 END ELSE 0 END) as ot_days
         FROM coaches c
         JOIN centers ct ON c.center_id = ct.id
         LEFT JOIN coach_leaves cl ON c.id = cl.coach_id AND cl.year = ?
@@ -120,16 +126,16 @@ def leaves():
     for month in CALENDAR_MONTHS:
         month_num = str(CALENDAR_MONTHS.index(month) + 1).zfill(2)
         cur.execute("""
-            SELECT COALESCE(SUM(julianday(to_date) - julianday(from_date) + 1), 0) 
+            SELECT COALESCE(SUM((julianday(to_date) - julianday(from_date) + 1) * CASE WHEN leave_duration = 'half_day' THEN 0.5 ELSE 1 END), 0) 
             FROM coach_leaves 
             WHERE year = ? AND strftime('%m', from_date) = ?
         """, (year, month_num))
-        monthly_leaves[month] = int(cur.fetchone()[0])
+        monthly_leaves[month] = float(cur.fetchone()[0] or 0)
     
     # Get leave type breakdown (with total days)
     cur.execute("""
         SELECT leave_type, 
-               CAST(SUM(julianday(to_date) - julianday(from_date) + 1) AS INTEGER) as total_days
+             ROUND(SUM((julianday(to_date) - julianday(from_date) + 1) * CASE WHEN leave_duration = 'half_day' THEN 0.5 ELSE 1 END), 1) as total_days
         FROM coach_leaves 
         WHERE year = ?
         GROUP BY leave_type
@@ -140,18 +146,18 @@ def leaves():
     # Get total leave days and LOP days for the year (excluding Week Off and OT from totals)
     cur.execute("""
         SELECT 
-            COALESCE(SUM(CASE WHEN leave_type NOT IN ('Week Off', 'OT') THEN julianday(to_date) - julianday(from_date) + 1 ELSE 0 END), 0) as total_days,
-            COALESCE(SUM(CASE WHEN leave_type = 'Unpaid' THEN julianday(to_date) - julianday(from_date) + 1 ELSE 0 END), 0) as lop_days,
-            COALESCE(SUM(CASE WHEN leave_type = 'Week Off' THEN julianday(to_date) - julianday(from_date) + 1 ELSE 0 END), 0) as weekoff_days,
-            COALESCE(SUM(CASE WHEN leave_type = 'OT' THEN julianday(to_date) - julianday(from_date) + 1 ELSE 0 END), 0) as ot_days
+            COALESCE(SUM(CASE WHEN leave_type NOT IN ('Week Off', 'OT') THEN (julianday(to_date) - julianday(from_date) + 1) * CASE WHEN leave_duration = 'half_day' THEN 0.5 ELSE 1 END ELSE 0 END), 0) as total_days,
+            COALESCE(SUM(CASE WHEN leave_type = 'Unpaid' THEN (julianday(to_date) - julianday(from_date) + 1) * CASE WHEN leave_duration = 'half_day' THEN 0.5 ELSE 1 END ELSE 0 END), 0) as lop_days,
+            COALESCE(SUM(CASE WHEN leave_type = 'Week Off' THEN (julianday(to_date) - julianday(from_date) + 1) * CASE WHEN leave_duration = 'half_day' THEN 0.5 ELSE 1 END ELSE 0 END), 0) as weekoff_days,
+            COALESCE(SUM(CASE WHEN leave_type = 'OT' THEN (julianday(to_date) - julianday(from_date) + 1) * CASE WHEN leave_duration = 'half_day' THEN 0.5 ELSE 1 END ELSE 0 END), 0) as ot_days
         FROM coach_leaves 
         WHERE year = ?
     """, (year,))
     totals = cur.fetchone()
-    total_leave_days = int(totals[0])
-    total_lop_days = int(totals[1])
-    total_weekoff_days = int(totals[2])
-    total_ot_days = int(totals[3])
+    total_leave_days = float(totals[0] or 0)
+    total_lop_days = float(totals[1] or 0)
+    total_weekoff_days = float(totals[2] or 0)
+    total_ot_days = float(totals[3] or 0)
     
     conn.close()
 
@@ -164,6 +170,7 @@ def leaves():
         selected_month=selected_month,
         selected_coach=selected_coach,
         selected_center=selected_center,
+        selected_duration=selected_duration,
         calendar_months=CALENDAR_MONTHS,
         leave_types=LEAVE_TYPES,
         leave_stats=leave_stats,
@@ -177,18 +184,28 @@ def leaves():
 
 
 def _add_leave(cur, form):
-    """Add a new leave record."""
+    """Add a new leave record. Check for duplicates first."""
     coach_id = form.get("coach_id")
     from_date = form.get("from_date")
     to_date = form.get("to_date") or from_date  # Default to same date if not provided
     leave_type = form.get("leave_type", "Casual")
+    leave_duration = form.get("leave_duration", "full_day")
     remarks = form.get("remarks", "").strip()
     year = int(form.get("year", datetime.now().year))
     
+    # Check for existing leave with same dates for this coach
     cur.execute("""
-        INSERT INTO coach_leaves(coach_id, from_date, to_date, leave_type, remarks, year)
-        VALUES(?, ?, ?, ?, ?, ?)
-    """, (coach_id, from_date, to_date, leave_type, remarks, year))
+        SELECT id FROM coach_leaves 
+        WHERE coach_id=? AND from_date=? AND to_date=?
+    """, (coach_id, from_date, to_date))
+    
+    existing = cur.fetchone()
+    if not existing:
+        # Only insert if no exact duplicate exists
+        cur.execute("""
+            INSERT INTO coach_leaves(coach_id, from_date, to_date, leave_type, leave_duration, remarks, year)
+            VALUES(?, ?, ?, ?, ?, ?, ?)
+        """, (coach_id, from_date, to_date, leave_type, leave_duration, remarks, year))
 
 
 def _edit_leave(cur, form):
@@ -198,10 +215,11 @@ def _edit_leave(cur, form):
     from_date = form.get("from_date")
     to_date = form.get("to_date") or from_date
     leave_type = form.get("leave_type", "Casual")
+    leave_duration = form.get("leave_duration", "full_day")
     remarks = form.get("remarks", "").strip()
     
     cur.execute("""
         UPDATE coach_leaves 
-        SET coach_id=?, from_date=?, to_date=?, leave_type=?, remarks=?
+        SET coach_id=?, from_date=?, to_date=?, leave_type=?, leave_duration=?, remarks=?
         WHERE id=?
-    """, (coach_id, from_date, to_date, leave_type, remarks, leave_id))
+    """, (coach_id, from_date, to_date, leave_type, leave_duration, remarks, leave_id))

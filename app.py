@@ -17,7 +17,7 @@ import secrets
 from datetime import timedelta
 from werkzeug.security import generate_password_hash
 
-from utils import get_db, generate_csrf_token, create_backup, IS_POSTGRES
+from utils import get_db, generate_csrf_token, create_backup
 from blueprints import auth_bp, dashboard_bp, coaches_bp, analytics_bp, settings_bp, leaves_bp
 
 
@@ -70,186 +70,229 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(dashboard_bp)
 app.register_blueprint(coaches_bp)
 app.register_blueprint(analytics_bp)
+
 app.register_blueprint(settings_bp)
 app.register_blueprint(leaves_bp)
+
+from blueprints.centers import centers_bp
+app.register_blueprint(centers_bp)
+
+from blueprints.tasks import tasks_bp
+app.register_blueprint(tasks_bp)
+from blueprints.tracker import tracker_bp
+app.register_blueprint(tracker_bp, url_prefix='/tracker')
+from blueprints.leaves_admin import leaves_admin_bp
+app.register_blueprint(leaves_admin_bp)
 
 
 # ================= DATABASE INITIALIZATION =================
 def init_db():
+
     """Initialize the database with required tables."""
     conn = get_db()
     cur = conn.cursor()
 
-    if IS_POSTGRES:
-        # PostgreSQL schema
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS centers(
-                id SERIAL PRIMARY KEY,
-                name TEXT
-            )
-        """)
+    # Tasks table for task tracker
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS tasks(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            description TEXT,
+            due_date DATE,
+            status TEXT DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            user_id INTEGER,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS monthly_data(
-                id SERIAL PRIMARY KEY,
-                center_id INTEGER,
-                month TEXT,
-                year INTEGER DEFAULT 2026,
-                revenue REAL DEFAULT 0,
-                target REAL DEFAULT 0
-            )
-        """)
+    # Centers
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS centers(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT
+        )
+    """)
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS coaches(
-                id SERIAL PRIMARY KEY,
-                center_id INTEGER,
-                name TEXT
-            )
-        """)
+    # Prevent duplicate center names
+    cur.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_centers_unique_name ON centers(name)
+    """)
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS coach_salaries(
-                id SERIAL PRIMARY KEY,
-                coach_id INTEGER,
-                month TEXT,
-                year INTEGER DEFAULT 2026,
-                salary REAL DEFAULT 0
-            )
-        """)
+    # Monthly data (with year support)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS monthly_data(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            center_id INTEGER,
+            month TEXT,
+            year INTEGER DEFAULT 2026,
+            revenue REAL DEFAULT 0,
+            target REAL DEFAULT 0
+        )
+    """)
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS coach_leaves(
-                id SERIAL PRIMARY KEY,
-                coach_id INTEGER,
-                from_date DATE,
-                to_date DATE,
-                leave_type TEXT DEFAULT 'Casual',
-                remarks TEXT,
-                year INTEGER DEFAULT 2026,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+    # Add unique constraint to monthly_data
+    cur.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_monthly_data_unique ON monthly_data(center_id, month, year)
+    """)
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS users(
-                id SERIAL PRIMARY KEY,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+    # Coaches (master list) with end_month and end_year
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS coaches(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            center_id INTEGER,
+            name TEXT,
+            end_month TEXT,
+            end_year INTEGER
+        )
+    """)
+    
+    # Add unique constraint to coaches (by center_id and name)
+    cur.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_unique ON coaches(center_id, name)
+    """)
+    # Add columns if they don't exist (for migrations)
+    try:
+        cur.execute("ALTER TABLE coaches ADD COLUMN end_month TEXT")
+    except Exception:
+        pass
+    try:
+        cur.execute("ALTER TABLE coaches ADD COLUMN end_year INTEGER")
+    except Exception:
+        pass
 
-        # Ensure at least one center exists
-        cur.execute("SELECT COUNT(*) FROM centers")
-        if cur.fetchone()[0] == 0:
-            cur.execute("INSERT INTO centers(name) VALUES('Center 1')")
+    # Coach salaries per month (with year support)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS coach_salaries(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            coach_id INTEGER,
+            month TEXT,
+            year INTEGER DEFAULT 2026,
+            salary REAL DEFAULT 0,
+            FOREIGN KEY(coach_id) REFERENCES coaches(id)
+        )
+    """)
+    
+    # Add unique constraint to coach_salaries
+    cur.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_coach_salaries_unique ON coach_salaries(coach_id, month, year)
+    """)
 
-        # Create default admin user if NO users exist
-        cur.execute("SELECT COUNT(*) FROM users")
-        if cur.fetchone()[0] == 0:
-            default_hash = generate_password_hash("admin", method='pbkdf2:sha256')
-            cur.execute("INSERT INTO users(username, password_hash) VALUES(%s, %s)", 
-                       ("admin", default_hash))
+    # Coach leaves tracking
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS coach_leaves(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            coach_id INTEGER,
+            from_date DATE NOT NULL,
+            to_date DATE NOT NULL,
+            leave_type TEXT DEFAULT 'Casual',
+            leave_duration TEXT DEFAULT 'full_day',
+            remarks TEXT,
+            year INTEGER DEFAULT 2026,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(coach_id) REFERENCES coaches(id)
+        )
+    """)
+    
+    # Add unique constraint to coach_leaves (one leave record per coach per date range)
+    cur.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_coach_leaves_unique ON coach_leaves(coach_id, from_date, to_date)
+    """)
+    
+    # Migration: Add from_date and to_date columns if they don't exist (for existing databases)
+    cur.execute("PRAGMA table_info(coach_leaves)")
+    columns = [col[1] for col in cur.fetchall()]
+    
+    if 'leave_date' in columns and 'from_date' not in columns:
+        # Migrate from old schema
+        cur.execute("ALTER TABLE coach_leaves ADD COLUMN from_date DATE")
+        cur.execute("ALTER TABLE coach_leaves ADD COLUMN to_date DATE")
+        cur.execute("UPDATE coach_leaves SET from_date = leave_date, to_date = leave_date WHERE from_date IS NULL")
+    elif 'from_date' not in columns:
+        cur.execute("ALTER TABLE coach_leaves ADD COLUMN from_date DATE")
+        cur.execute("ALTER TABLE coach_leaves ADD COLUMN to_date DATE")
 
-    else:
-        # SQLite schema (local development)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS centers(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT
-            )
-        """)
+    # Migration: Add leave_duration column if it doesn't exist
+    if 'leave_duration' not in columns:
+        cur.execute("ALTER TABLE coach_leaves ADD COLUMN leave_duration TEXT DEFAULT 'full_day'")
+        cur.execute("UPDATE coach_leaves SET leave_duration = 'full_day' WHERE leave_duration IS NULL OR leave_duration = ''")
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS monthly_data(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                center_id INTEGER,
-                month TEXT,
-                year INTEGER DEFAULT 2026,
-                revenue REAL DEFAULT 0,
-                target REAL DEFAULT 0
-            )
-        """)
+    # Users table for secure authentication
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS coaches(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                center_id INTEGER,
-                name TEXT
-            )
-        """)
+    # Add year column to existing tables if not exists
+    try:
+        cur.execute("ALTER TABLE monthly_data ADD COLUMN year INTEGER DEFAULT 2026")
+    except:
+        pass
+    try:
+        cur.execute("ALTER TABLE coach_salaries ADD COLUMN year INTEGER DEFAULT 2026")
+    except:
+        pass
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS coach_salaries(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                coach_id INTEGER,
-                month TEXT,
-                year INTEGER DEFAULT 2026,
-                salary REAL DEFAULT 0,
-                FOREIGN KEY(coach_id) REFERENCES coaches(id)
-            )
-        """)
+    # Ensure at least one center exists
+    cur.execute("SELECT COUNT(*) FROM centers")
+    if cur.fetchone()[0] == 0:
+        cur.execute("INSERT INTO centers(name) VALUES('Center 1')")
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS coach_leaves(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                coach_id INTEGER,
-                from_date DATE NOT NULL,
-                to_date DATE NOT NULL,
-                leave_type TEXT DEFAULT 'Casual',
-                remarks TEXT,
-                year INTEGER DEFAULT 2026,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(coach_id) REFERENCES coaches(id)
-            )
-        """)
-        
-        # Migration: Add from_date and to_date columns if they don't exist (for existing databases)
-        cur.execute("PRAGMA table_info(coach_leaves)")
-        columns = [col[1] for col in cur.fetchall()]
-        
-        if 'leave_date' in columns and 'from_date' not in columns:
-            cur.execute("ALTER TABLE coach_leaves ADD COLUMN from_date DATE")
-            cur.execute("ALTER TABLE coach_leaves ADD COLUMN to_date DATE")
-            cur.execute("UPDATE coach_leaves SET from_date = leave_date, to_date = leave_date WHERE from_date IS NULL")
-        elif 'from_date' not in columns:
-            cur.execute("ALTER TABLE coach_leaves ADD COLUMN from_date DATE")
-            cur.execute("ALTER TABLE coach_leaves ADD COLUMN to_date DATE")
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS users(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        # Add year column to existing tables if not exists
-        try:
-            cur.execute("ALTER TABLE monthly_data ADD COLUMN year INTEGER DEFAULT 2026")
-        except:
-            pass
-        try:
-            cur.execute("ALTER TABLE coach_salaries ADD COLUMN year INTEGER DEFAULT 2026")
-        except:
-            pass
-
-        # Ensure at least one center exists
-        cur.execute("SELECT COUNT(*) FROM centers")
-        if cur.fetchone()[0] == 0:
-            cur.execute("INSERT INTO centers(name) VALUES('Center 1')")
-
-        # Create default admin user if NO users exist (first time setup only)
-        cur.execute("SELECT COUNT(*) FROM users")
-        if cur.fetchone()[0] == 0:
-            default_hash = generate_password_hash("admin", method='pbkdf2:sha256')
-            cur.execute("INSERT INTO users(username, password_hash) VALUES(?, ?)", 
-                       ("admin", default_hash))
+    # Create default admin user if NO users exist (first time setup only)
+    cur.execute("SELECT COUNT(*) FROM users")
+    if cur.fetchone()[0] == 0:
+        default_hash = generate_password_hash("admin", method='pbkdf2:sha256')
+        cur.execute("INSERT INTO users(username, password_hash) VALUES(?, ?)", 
+                   ("admin", default_hash))
 
     conn.commit()
+    
+    # Remove any duplicates that might exist from previous migrations
+    _clean_duplicates(cur)
+    
+    conn.commit()
     conn.close()
+
+
+def _clean_duplicates(cur):
+    """Remove duplicate entries from all tables."""
+    try:
+        # Fix monthly_data duplicates - keep the first occurrence
+        cur.execute("""
+            DELETE FROM monthly_data WHERE id NOT IN (
+                SELECT MIN(id) FROM monthly_data 
+                GROUP BY center_id, month, year
+            )
+        """)
+        deleted_monthly = cur.rowcount
+        
+        # Fix coach_salaries duplicates - keep the first occurrence
+        cur.execute("""
+            DELETE FROM coach_salaries WHERE id NOT IN (
+                SELECT MIN(id) FROM coach_salaries 
+                GROUP BY coach_id, month, year
+            )
+        """)
+        deleted_salaries = cur.rowcount
+        
+        # Fix coach_leaves duplicates - keep the first occurrence
+        cur.execute("""
+            DELETE FROM coach_leaves WHERE id NOT IN (
+                SELECT MIN(id) FROM coach_leaves 
+                GROUP BY coach_id, from_date, to_date
+            )
+        """)
+        deleted_leaves = cur.rowcount
+        
+        if deleted_monthly > 0 or deleted_salaries > 0 or deleted_leaves > 0:
+            print(f"🧹 Cleaned duplicates: monthly_data({deleted_monthly}), coach_salaries({deleted_salaries}), coach_leaves({deleted_leaves})")
+    except Exception as e:
+        print(f"⚠️ Duplicate cleanup warning: {e}")
 
 
 # Create automatic backup on startup

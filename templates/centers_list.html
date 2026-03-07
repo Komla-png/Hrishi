@@ -1,0 +1,235 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View All Centers</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6fa;
+        }
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 210px;
+            height: 100vh;
+            background: #eceef0;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+            padding: 24px 0 0 0;
+            z-index: 10;
+        }
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .sidebar-title {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding-left: 0;
+            align-items: center;
+        }
+        .sidebar-link {
+            color: #3a3a3a;
+            text-decoration: none;
+            font-size: 1.08em;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 18px;
+            border-radius: 6px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .sidebar-link:hover {
+            background: #e3e8f0;
+            color: #0078d7;
+        }
+        .container {
+            margin-left: 230px;
+            padding: 40px 32px;
+            max-width: 900px;
+        }
+        h2 {
+            margin-top: 0;
+            font-size: 2em;
+            font-weight: 600;
+            color: #222;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            margin-top: 24px;
+        }
+        th, td {
+            padding: 16px 12px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        th {
+            background: #f3f4f6;
+            font-weight: 600;
+            color: #374151;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .empty {
+            text-align: center;
+            color: #6b7280;
+            padding: 32px 0;
+        }
+        .btn-danger {
+            background: #e53935;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            padding: 7px 18px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
+            .btn-edit {
+                background: #fbc02d;
+                color: #222;
+                border: none;
+                border-radius: 5px;
+                padding: 7px 14px;
+                font-size: 1em;
+                cursor: pointer;
+                margin-right: 2px;
+                transition: background 0.2s;
+            }
+            .btn-edit:hover {
+                background: #f9a825;
+            }
+            .btn-save {
+                background: #0078d7;
+                color: #fff;
+                border: none;
+                border-radius: 5px;
+                padding: 7px 14px;
+                font-size: 1em;
+                cursor: pointer;
+                margin-right: 2px;
+                transition: background 0.2s;
+            }
+            .btn-save:hover {
+                background: #005fa3;
+            }
+            .edit-input {
+                font-size: 1em;
+                padding: 6px 10px;
+                border: 1px solid #bdbdbd;
+                border-radius: 5px;
+                margin-right: 4px;
+            }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-title">🏸 Academy</span>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/dashboard" class="sidebar-link"><span class="sidebar-icon">📊</span>Dashboard</a>
+            <a href="/coaches" class="sidebar-link"><span class="sidebar-icon">🏋️</span>Coaches</a>
+            <a href="/analytics" class="sidebar-link"><span class="sidebar-icon">📈</span>Analytics</a>
+            <a href="/leaves" class="sidebar-link"><span class="sidebar-icon">🗓️</span>Leaves</a>
+            <a href="/settings" class="sidebar-link"><span class="sidebar-icon">⚙️</span>Settings</a>
+            <a href="/tasks" class="sidebar-link"><span class="sidebar-icon">✅</span>Tasks</a>
+            <a href="/centers" class="sidebar-link"><span class="sidebar-icon">🏢</span>All Centers</a>
+            <button id="themeToggle" class="sidebar-link" style="margin-top:18px;display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:none;font:inherit;outline:none;">
+                <span class="sidebar-icon">🌙</span><span class="sidebar-text">Night Mode</span>
+            </button>
+        </nav>
+    </div>
+<script>
+// Theme toggle logic
+document.addEventListener('DOMContentLoaded', function() {
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            const isDark = document.body.classList.contains('dark-theme');
+            document.body.classList.toggle('dark-theme', !isDark);
+            document.body.classList.toggle('light-theme', isDark);
+            // Save preference
+            localStorage.setItem('dashboardPreferences', JSON.stringify({theme: isDark ? 'light' : 'dark'}));
+        });
+    }
+    // On load, set theme from localStorage
+    try {
+        const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
+        if (prefs.theme === 'light') {
+            document.body.classList.add('light-theme');
+            document.body.classList.remove('dark-theme');
+        } else {
+            document.body.classList.add('dark-theme');
+            document.body.classList.remove('light-theme');
+        }
+    } catch(e) {}
+});
+</script>
+    <div class="container">
+        <h2>All Centers</h2>
+        <table>
+            <tr><th>ID</th><th>Name</th><th>Action</th></tr>
+            {% if centers|length == 0 %}
+            <tr><td colspan="3" class="empty">No centers found.</td></tr>
+            {% else %}
+            {% for center in centers %}
+                <tr>
+                    <td>{{ center[0] }}</td>
+                    <td><span class="center-name">{{ center[1] }}</span></td>
+                    <td>
+                        <form method="POST" action="/centers/edit/{{ center[0] }}" class="action-form" style="display:inline;">
+                            <input type="text" name="new_name" value="{{ center[1] }}" class="edit-input" style="width:120px; display:none; margin-right:6px;" />
+                            <button type="button" class="btn-edit" onclick="toggleEdit(this)">Edit</button>
+                            <button type="submit" class="btn-save" style="display:none; background:#0078d7; color:#fff; margin-left:4px;">Save</button>
+                        </form>
+                        <form method="POST" action="/centers/delete/{{ center[0] }}" style="display:inline; margin-left:6px;">
+                            <button type="submit" onclick="return confirm('Delete this center? This will remove all related data.')" class="btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            {% endif %}
+        </table>
+        <script>
+            function toggleEdit(btn) {
+                    const form = btn.closest('form');
+                    const input = form.querySelector('.edit-input');
+                    const saveBtn = form.querySelector('.btn-save');
+                    const nameSpan = form.closest('tr').querySelector('.center-name');
+                    if (input.style.display === 'none') {
+                        input.style.display = 'inline-block';
+                        saveBtn.style.display = 'inline-block';
+                        btn.style.display = 'none';
+                        nameSpan.style.display = 'none';
+                    } else {
+                        input.style.display = 'none';
+                        saveBtn.style.display = 'none';
+                        btn.style.display = 'inline-block';
+                        nameSpan.style.display = 'inline-block';
+                    }
+            }
+        // Auto-refresh disabled to prevent overwriting edits
+        </script>
+    </div>
+</body>
+</html>
