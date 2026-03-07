@@ -25,7 +25,7 @@ from blueprints import auth_bp, dashboard_bp, coaches_bp, analytics_bp, settings
 app = Flask(__name__)
 
 # Secure secret key - from env or auto-generate
-SECRET_KEY_FILE = "instance/.secret_key"
+SECRET_KEY_FILE = os.environ.get("SECRET_KEY_FILE", "instance/.secret_key")
 
 def get_secret_key():
     """Generate or retrieve the application secret key."""
@@ -34,7 +34,9 @@ def get_secret_key():
     if env_key:
         return env_key
     # Fall back to file-based key for local development
-    os.makedirs("instance", exist_ok=True)
+    key_dir = os.path.dirname(SECRET_KEY_FILE)
+    if key_dir:
+        os.makedirs(key_dir, exist_ok=True)
     if os.path.exists(SECRET_KEY_FILE):
         with open(SECRET_KEY_FILE, "r") as f:
             return f.read().strip()
@@ -250,6 +252,9 @@ def init_db():
         cur.execute("INSERT INTO users(username, password_hash) VALUES(?, ?)", 
                    ("admin", default_hash))
 
+    # Bootstrap/recover admin credentials from env when needed.
+    _bootstrap_admin_user(cur)
+
     conn.commit()
     
     # Remove any duplicates that might exist from previous migrations
@@ -293,6 +298,28 @@ def _clean_duplicates(cur):
             print(f"🧹 Cleaned duplicates: monthly_data({deleted_monthly}), coach_salaries({deleted_salaries}), coach_leaves({deleted_leaves})")
     except Exception as e:
         print(f"⚠️ Duplicate cleanup warning: {e}")
+
+
+def _bootstrap_admin_user(cur):
+    """Optionally create/update an admin account from environment variables."""
+    admin_username = (os.environ.get("ADMIN_USERNAME") or "").strip()
+    admin_password = os.environ.get("ADMIN_PASSWORD") or ""
+    force_reset = (os.environ.get("RESET_ADMIN_ON_STARTUP", "false").lower() == "true")
+
+    # No env credentials supplied: leave existing login setup untouched.
+    if not admin_username or not admin_password:
+        return
+
+    password_hash = generate_password_hash(admin_password, method='pbkdf2:sha256')
+    cur.execute("SELECT id FROM users WHERE username=?", (admin_username,))
+    existing = cur.fetchone()
+
+    if existing and force_reset:
+        cur.execute("UPDATE users SET password_hash=? WHERE username=?", (password_hash, admin_username))
+        print(f"🔐 Admin password reset for user '{admin_username}' from environment")
+    elif not existing:
+        cur.execute("INSERT INTO users(username, password_hash) VALUES(?, ?)", (admin_username, password_hash))
+        print(f"🔐 Admin user '{admin_username}' created from environment")
 
 
 # Create automatic backup on startup

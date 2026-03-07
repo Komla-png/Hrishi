@@ -11,7 +11,7 @@ from functools import wraps
 from flask import session, redirect, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 
-DB_PATH = "instance/academy.db"
+DB_PATH = os.environ.get("DATABASE_PATH", "instance/academy.db")
 BACKUP_DIR = "backups"  # Dedicated backup folder - DO NOT DELETE
 MAX_BACKUPS = 20  # Keep last 20 backups
 
@@ -125,7 +125,9 @@ LOCKOUT_TIME = 300  # 5 minutes in seconds
 
 def get_db():
     """Get database connection with Row factory."""
-    os.makedirs("instance", exist_ok=True)
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     conn = sqlite3.connect(DB_PATH, timeout=30)  # 30 second timeout to prevent locking
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")  # Better concurrent access
