@@ -11,11 +11,13 @@
         }
         
         body {
-            font-family: Inter, Segoe UI, Arial, sans-serif;
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
             margin: 0;
             padding: 30px;
+            padding-bottom: 90px;
             background: #000000;
             min-height: 100vh;
+            scrollbar-gutter: stable both-edges;
         }
 
         .container {
@@ -44,8 +46,7 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 25px;
-            flex-wrap: wrap;
-            gap: 15px;
+            gap: 16px;
             padding-bottom: 20px;
             border-bottom: 2px solid #e2e8f0;
         }
@@ -102,31 +103,34 @@
         /* Filter Bar */
         .filter-bar {
             background: white;
-            padding: 15px 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
             flex-wrap: wrap;
         }
 
         .filter-bar label {
             font-weight: 600;
             color: #374151;
-            font-size: 13px;
+            font-size: 12px;
+            white-space: nowrap;
         }
 
         .filter-bar select {
-            padding: 10px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 0 10px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 7px;
+            font-size: 13px;
             font-weight: 500;
             background: white;
             cursor: pointer;
-            min-width: 140px;
+            min-width: 120px;
+            height: 36px;
+            line-height: 36px;
         }
 
         .filter-bar select:focus {
@@ -137,7 +141,43 @@
         .filter-group {
             display: flex;
             align-items: center;
+            gap: 6px;
+        }
+
+        .records-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .records-search {
+            display: flex;
+            align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .records-search input {
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            background: white;
+            min-width: 200px;
+        }
+
+        .records-search input:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .records-loading {
+            margin: 8px 0 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1d4ed8;
         }
 
         /* Stats Cards */
@@ -242,18 +282,28 @@
 
         /* Badges */
         .badge {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 22px;
+            min-width: 56px;
             padding: 4px 10px;
-            border-radius: 20px;
+            border-radius: 999px;
             font-size: 12px;
             font-weight: 600;
+            line-height: 1;
+            text-align: center;
+            transition: filter 0.18s ease;
         }
 
-        .badge-paid { background: #dcfce7; color: #16a34a; }
-        .badge-unpaid { background: #fef3c7; color: #d97706; }
-        .badge-weekoff { background: #f0fdf4; color: #15803d; border: 1px dashed #86efac; }
-        .badge-week { background: #f0fdf4; color: #15803d; border: 1px dashed #86efac; }
-        .badge-ot { background: #fdf4ff; color: #a855f7; border: 1px solid #e879f9; }
+        .badge:hover {
+            filter: brightness(1.07);
+        }
+
+        .badge-paid { background: rgba(34, 197, 94, 0.18); color: #86efac !important; }
+        .badge-lop { background: rgba(239, 68, 68, 0.16); color: #f87171 !important; }
+        .badge-unpaid { background: rgba(249, 115, 22, 0.16); color: #fdba74 !important; }
+        .badge-ot { background: #2e1065; color: #c084fc !important; border: 1px solid #c084fc; }
 
         /* Remarks */
         .remarks {
@@ -366,9 +416,14 @@
         }
 
         /* Action buttons in table */
+        .action-cell {
+            white-space: nowrap;
+        }
+
         .action-btns {
             display: flex;
             gap: 6px;
+            align-items: center;
         }
 
         /* Chart Container */
@@ -438,6 +493,16 @@
             background: #0f172a;
             color: #e5e7eb;
             border-color: #374151;
+        }
+
+        body.dark-theme .records-search input {
+            background: #0f172a;
+            color: #e5e7eb;
+            border-color: #374151;
+        }
+
+        body.dark-theme .records-loading {
+            color: #93c5fd;
         }
 
         body.dark-theme .stat-card {
@@ -528,17 +593,12 @@
             color: #9ca3af;
         }
 
-        /* ================= LIGHT THEME ================= */
-        body.light-theme {
-            background: #f1f5f9;
-        }
-
-        body.light-theme .container {
-            background: #ffffff;
-        }
     </style>
+    <link rel="stylesheet" href="/static/unified-theme.css">
+    <link rel="stylesheet" href="/static/sidebar.css">
 </head>
 <body>
+{% include '_sidebar.html' %}
 <script>
 // Load theme preference from localStorage
 function loadThemePreference() {
@@ -547,7 +607,6 @@ function loadThemePreference() {
         const prefs = JSON.parse(saved);
         const isDark = prefs['dark-theme'] !== false;
         document.body.classList.toggle('dark-theme', isDark);
-        document.body.classList.toggle('light-theme', !isDark);
     } else {
         document.body.classList.add('dark-theme');
     }
@@ -558,14 +617,7 @@ loadThemePreference();
     // Global night mode sync: applies theme from localStorage and listens for changes
     function applyThemeFromStorage() {
         try {
-            const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
-            if (prefs.theme === 'light') {
-                document.body.classList.add('light-theme');
-                document.body.classList.remove('dark-theme');
-            } else {
-                document.body.classList.add('dark-theme');
-                document.body.classList.remove('light-theme');
-            }
+            document.body.classList.add('dark-theme');
         } catch(e) {}
     }
     applyThemeFromStorage();
@@ -573,7 +625,8 @@ loadThemePreference();
         if (e.key === 'dashboardPreferences') applyThemeFromStorage();
     });
     </script>
-    <div class="container">
+    <div class="sb-content">
+<div class="container">
         <!-- Header -->
         <div class="header">
             <h1>
@@ -589,14 +642,8 @@ loadThemePreference();
                     </svg>
                     Add Leave
                 </button>
-                <a href="/dashboard" class="btn btn-dark">📊 Dashboard</a>
-                <a href="/coaches" class="btn btn-purple">🏋️ Coaches</a>
-                <a href="/analytics?year={{ year }}" class="btn btn-primary">📈 Analytics</a>
-                <a href="/settings" class="btn" style="background: #8b5cf6; color: white;">⚙️ Settings</a>
             </div>
         </div>
-
-            <a href="/leaves/weekoff" style="display:inline-block;margin-top:16px;padding:8px 16px;background:#10b981;color:#fff;border-radius:4px;text-decoration:none;">View Week Off Records</a>
 
         <!-- Filter Bar -->
         <div class="filter-bar">
@@ -635,14 +682,6 @@ loadThemePreference();
                     {% endfor %}
                 </select>
             </div>
-            <div class="filter-group">
-                <label>Duration:</label>
-                <select onchange="applyFilters()" id="durationSelect">
-                    <option value="All" {% if selected_duration == 'All' %}selected{% endif %}>All Durations</option>
-                    <option value="full_day" {% if selected_duration == 'full_day' %}selected{% endif %}>Full Day</option>
-                    <option value="half_day" {% if selected_duration == 'half_day' %}selected{% endif %}>Half Day</option>
-                </select>
-            </div>
             <button class="btn btn-secondary btn-sm" onclick="clearFilters()">Clear Filters</button>
         </div>
 
@@ -650,23 +689,19 @@ loadThemePreference();
         <div class="stats-grid">
             <div class="stat-card blue">
                 <h3>Total Leave Days ({{ year }})</h3>
-                <div class="value">{{ total_leave_days }}</div>
+                <div class="value" id="totalLeaveDaysValue">{{ total_leave_days }}</div>
             </div>
             <div class="stat-card" style="border-left: 4px solid #ef4444;">
                 <h3>LOP Days (Unpaid)</h3>
-                <div class="value" style="color: #ef4444;">{{ total_lop_days }}</div>
+                <div class="value" id="totalLopDaysValue" style="color: #ef4444;">{{ total_lop_days }}</div>
             </div>
             <div class="stat-card green">
                 <h3>Approved Days</h3>
-                <div class="value">{{ total_leave_days - total_lop_days }}</div>
-            </div>
-            <div class="stat-card" style="border-left: 4px solid #22c55e;">
-                <h3>Week Off Days</h3>
-                <div class="value" style="color: #15803d;">{{ total_weekoff_days }}</div>
+                <div class="value" id="totalApprovedDaysValue">{{ total_leave_days - total_lop_days }}</div>
             </div>
             <div class="stat-card" style="border-left: 4px solid #a855f7;">
                 <h3>OT Days</h3>
-                <div class="value" style="color: #a855f7;">{{ total_ot_days }}</div>
+                <div class="value" id="totalOtDaysValue" style="color: #a855f7;">{{ total_ot_days }}</div>
             </div>
         </div>
 
@@ -715,26 +750,32 @@ loadThemePreference();
                         </svg>
                         Leave Records
                     </span>
-                    <span style="color: #64748b; font-size: 13px;">{{ leaves|length }} records</span>
+                    <div class="records-toolbar">
+                        <div class="records-search">
+                            <input type="text" id="coachSearchInput" value="{{ selected_coach_search }}" placeholder="Search coach name">
+                            <button type="button" id="coachSearchButton" class="btn btn-secondary btn-sm">Search</button>
+                        </div>
+                        <span id="leaveRecordCount" style="color: #64748b; font-size: 13px;">{{ leaves|length }} records</span>
+                    </div>
                 </div>
-                
-                {% if leaves %}
-                <div style="max-height: 400px; overflow-y: auto;">
-                    <table>
+                <div id="leaveRecordsLoading" class="records-loading" style="display:none;">Loading records...</div>
+
+                <div id="leaveRecordsTableWrap" style="max-height: 400px; overflow-y: auto; overflow-x: auto; width: 100%; {% if not leaves %}display:none;{% endif %}">
+                    <table style="min-width: 900px;">
                         <thead>
                             <tr>
-                                <th>From</th>
-                                <th>To</th>
-                                <th>Days</th>
-                                <th>Duration</th>
-                                <th>Coach</th>
-                                <th>Center</th>
-                                <th>Type</th>
-                                <th>Remarks</th>
-                                <th>Actions</th>
+                                <th style="position: sticky; top: 0; z-index: 2;">From</th>
+                                <th style="position: sticky; top: 0; z-index: 2;">To</th>
+                                <th style="position: sticky; top: 0; z-index: 2;">Days</th>
+                                <th style="position: sticky; top: 0; z-index: 2;">Duration</th>
+                                <th style="position: sticky; top: 0; z-index: 2;">Coach</th>
+                                <th style="position: sticky; top: 0; z-index: 2;">Center</th>
+                                <th style="position: sticky; top: 0; z-index: 2;">Type</th>
+                                <th style="position: sticky; top: 0; z-index: 2;">Remarks</th>
+                                <th style="position: sticky; top: 0; z-index: 2;">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="leaveRecordsTbody">
                             {% for leave in leaves %}
                             <tr>
                                 <td class="date-display">{{ leave[4] }}</td>
@@ -757,28 +798,29 @@ loadThemePreference();
                                 <td class="remarks" title="{{ leave[8] or 'No remarks' }}">
                                     {{ leave[8] or '—' }}
                                 </td>
-                                <td class="action-btns">
-                                    <button class="btn btn-primary btn-sm" onclick="editLeave({{ leave[0] }}, {{ leave[1] }}, '{{ leave[4] }}', '{{ leave[5] }}', '{{ leave[6] }}', '{{ leave[7] }}', '{{ leave[8]|replace("'", "\\'") if leave[8] else '' }}')">Edit</button>
-                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this leave record?')">
-                                        <input type="hidden" name="action" value="delete_leave">
-                                        <input type="hidden" name="leave_id" value="{{ leave[0] }}">
-                                        <button type="submit" class="btn btn-danger btn-sm">Del</button>
-                                    </form>
+                                <td class="action-cell">
+                                    <div class="action-btns">
+                                        <button class="btn btn-primary btn-sm" onclick="editLeave({{ leave[0] }}, {{ leave[1] }}, '{{ leave[4] }}', '{{ leave[5] }}', '{{ leave[6] }}', '{{ leave[7] }}', '{{ leave[8]|replace("'", "\\'") if leave[8] else '' }}')">Edit</button>
+                                        <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this leave record?')">
+                                            <input type="hidden" name="action" value="delete_leave">
+                                            <input type="hidden" name="leave_id" value="{{ leave[0] }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">Del</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
-                {% else %}
-                <div class="empty-state">
+
+                <div id="leaveRecordsEmpty" class="empty-state" style="{% if leaves %}display:none;{% endif %}">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
-                    <p>No leave records found for the selected filters.</p>
+                    <p id="leaveRecordsEmptyText">No leave records found for the selected filters.</p>
                     <button class="btn btn-success" onclick="openModal('addLeaveModal')">Add First Leave</button>
                 </div>
-                {% endif %}
             </div>
 
             <!-- Coach Leave Summary -->
@@ -799,12 +841,11 @@ loadThemePreference();
                                 <th>Center</th>
                                 <th style="text-align: center;">LOP</th>
                                 <th style="text-align: center;">Approved</th>
-                                <th style="text-align: center;">Week Off</th>
                                 <th style="text-align: center;">OT</th>
                                 <th style="text-align: center;">Total Leave</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="coachSummaryTbody">
                             {% for stat in leave_stats %}
                             <tr>
                                 <td>{{ stat[1] }}</td>
@@ -820,13 +861,8 @@ loadThemePreference();
                                     </span>
                                 </td>
                                 <td style="text-align: center;">
-                                    <span style="background: #f0fdf4; color: #15803d; padding: 4px 12px; border-radius: 20px; font-weight: 600; border: 1px dashed #86efac;">
-                                        {{ (stat[7] or 0)|round(1) }}
-                                    </span>
-                                </td>
-                                <td style="text-align: center;">
                                     <span style="background: #fdf4ff; color: #a855f7; padding: 4px 12px; border-radius: 20px; font-weight: 600; border: 1px solid #e879f9;">
-                                        {{ (stat[8] or 0)|round(1) }}
+                                        {{ (stat[7] or 0)|round(1) }}
                                     </span>
                                 </td>
                                 <td style="text-align: center;">
@@ -882,7 +918,7 @@ loadThemePreference();
                     <label>Duration</label>
                     <select name="leave_duration" id="add_leave_duration" onchange="updateDaysInfo('add')">
                         <option value="full_day">Full Day</option>
-                        <option value="half_day">Half Day</option>
+                        <option value="half_day">Half Day (last day is half)</option>
                     </select>
                 </div>
                 
@@ -943,7 +979,7 @@ loadThemePreference();
                     <label>Duration</label>
                     <select name="leave_duration" id="edit_leave_duration" onchange="updateDaysInfo('edit')">
                         <option value="full_day">Full Day</option>
-                        <option value="half_day">Half Day</option>
+                        <option value="half_day">Half Day (last day is half)</option>
                     </select>
                 </div>
                 
@@ -986,17 +1022,359 @@ loadThemePreference();
         });
 
         // Filter functions
-        function applyFilters() {
+        function syncLeavesUrlFromFilters() {
             const year = document.getElementById('yearSelect').value;
             const month = document.getElementById('monthSelect').value;
             const center = document.getElementById('centerSelect').value;
             const coach = document.getElementById('coachSelect').value;
-            const duration = document.getElementById('durationSelect').value;
-            window.location.href = `/leaves?year=${year}&month=${month}&center=${center}&coach=${coach}&duration=${duration}`;
+            const coachSearch = document.getElementById('coachSearchInput').value.trim();
+
+            const params = new URLSearchParams({
+                year,
+                month,
+                center,
+                coach,
+                coach_search: coachSearch,
+            });
+            window.history.replaceState({}, '', `/leaves?${params.toString()}`);
+        }
+
+        function applyFilters() {
+            clearTimeout(coachSearchDebounce);
+            syncLeavesUrlFromFilters();
+            fetchLeaveRecords();
         }
 
         function clearFilters() {
-            window.location.href = `/leaves?year={{ year }}&month=All&duration=All`;
+            document.getElementById('monthSelect').value = 'All';
+            document.getElementById('coachSelect').value = '';
+            document.getElementById('centerSelect').value = '';
+            document.getElementById('coachSearchInput').value = '';
+            applyFilters();
+        }
+
+        function handleCoachSearchKey(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                triggerCoachSearch(event);
+            }
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, function(char) {
+                return ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                })[char];
+            });
+        }
+
+        function leaveTypeBadgeClass(leaveType) {
+            return `badge-${String(leaveType || '').toLowerCase().replace(/\s+/g, '')}`;
+        }
+
+        function formatDurationLabel(duration) {
+            return duration === 'half_day' ? 'Half Day' : 'Full Day';
+        }
+
+        function formatOneDecimal(value) {
+            const numericValue = Number(value || 0);
+            return numericValue.toFixed(1).replace(/\.0$/, '');
+        }
+
+        function lopBadgeColors(value) {
+            const numericValue = Number(value || 0);
+            if (numericValue > 5) {
+                return { background: '#fee2e2', color: '#dc2626' };
+            }
+            if (numericValue > 0) {
+                return { background: '#fef3c7', color: '#d97706' };
+            }
+            return { background: '#f1f5f9', color: '#64748b' };
+        }
+
+        function totalBadgeColors(value) {
+            const numericValue = Number(value || 0);
+            if (numericValue > 15) {
+                return { background: '#fee2e2', color: '#dc2626' };
+            }
+            if (numericValue > 8) {
+                return { background: '#fef3c7', color: '#d97706' };
+            }
+            return { background: '#dbeafe', color: '#1d4ed8' };
+        }
+
+        function renderLeaveRecords(records) {
+            const tbody = document.getElementById('leaveRecordsTbody');
+            tbody.innerHTML = records.map((leave) => {
+                const remarks = leave.remarks || '';
+                const escapedRemarks = escapeHtml(remarks);
+                const dataRemarks = encodeURIComponent(remarks);
+                return `
+                    <tr>
+                        <td class="date-display">${escapeHtml(leave.from_date)}</td>
+                        <td class="date-display">${escapeHtml(leave.to_date)}</td>
+                        <td style="text-align: center; font-weight: 600;">
+                            <span style="background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 10px; font-size: 12px;">
+                                ${Number(leave.days || 0).toFixed(1).replace(/\.0$/, '')}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span style="background: #f1f5f9; color: #334155; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600;">
+                                ${formatDurationLabel(leave.leave_duration)}
+                            </span>
+                        </td>
+                        <td>${escapeHtml(leave.coach_name)}</td>
+                        <td>${escapeHtml(leave.center_name)}</td>
+                        <td>
+                            <span class="badge ${leaveTypeBadgeClass(leave.leave_type)}">${escapeHtml(leave.leave_type)}</span>
+                        </td>
+                        <td class="remarks" title="${escapedRemarks || 'No remarks'}">
+                            ${escapedRemarks || '—'}
+                        </td>
+                        <td class="action-cell">
+                            <div class="action-btns">
+                                <button
+                                    class="btn btn-primary btn-sm leave-edit-btn"
+                                    data-id="${leave.id}"
+                                    data-coach-id="${leave.coach_id}"
+                                    data-from-date="${escapeHtml(leave.from_date)}"
+                                    data-to-date="${escapeHtml(leave.to_date)}"
+                                    data-leave-type="${escapeHtml(leave.leave_type)}"
+                                    data-duration="${escapeHtml(leave.leave_duration || 'full_day')}"
+                                    data-remarks="${dataRemarks}">
+                                    Edit
+                                </button>
+                                <form method="POST" style="display: inline;" onsubmit="return confirm('Delete this leave record?')">
+                                    <input type="hidden" name="action" value="delete_leave">
+                                    <input type="hidden" name="leave_id" value="${leave.id}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Del</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderCoachSummary(rows) {
+            const tbody = document.getElementById('coachSummaryTbody');
+            if (!tbody) {
+                return;
+            }
+
+            if (!rows || rows.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align:center; color:#94a3b8; padding: 16px;">No summary data for current filters.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = rows.map((row) => {
+                const lopColors = lopBadgeColors(row.lop_days);
+                const totalColors = totalBadgeColors(row.total_days);
+                return `
+                    <tr>
+                        <td>${escapeHtml(row.coach_name)}</td>
+                        <td>${escapeHtml(row.center_name)}</td>
+                        <td style="text-align: center;">
+                            <span style="background: ${lopColors.background}; color: ${lopColors.color}; padding: 4px 12px; border-radius: 20px; font-weight: 600;">
+                                ${formatOneDecimal(row.lop_days)}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span style="background: #dcfce7; color: #16a34a; padding: 4px 12px; border-radius: 20px; font-weight: 600;">
+                                ${formatOneDecimal(row.approved_days)}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span style="background: #fdf4ff; color: #a855f7; padding: 4px 12px; border-radius: 20px; font-weight: 600; border: 1px solid #e879f9;">
+                                ${formatOneDecimal(row.ot_days)}
+                            </span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span style="background: ${totalColors.background}; color: ${totalColors.color}; padding: 4px 12px; border-radius: 20px; font-weight: 600;">
+                                ${formatOneDecimal(row.total_days)}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateSummaryCards(summary) {
+            if (!summary) {
+                return;
+            }
+            const totalLeave = document.getElementById('totalLeaveDaysValue');
+            const totalLop = document.getElementById('totalLopDaysValue');
+            const totalApproved = document.getElementById('totalApprovedDaysValue');
+            const totalOt = document.getElementById('totalOtDaysValue');
+
+            if (totalLeave) totalLeave.textContent = formatOneDecimal(summary.total_leave_days);
+            if (totalLop) totalLop.textContent = formatOneDecimal(summary.total_lop_days);
+            if (totalApproved) totalApproved.textContent = formatOneDecimal(summary.total_approved_days);
+            if (totalOt) totalOt.textContent = formatOneDecimal(summary.total_ot_days);
+        }
+
+        function updateMonthlyChart(monthlyLeaves) {
+            if (!monthlyChart) {
+                return;
+            }
+            const counts = calendarMonthsOrdered.map((month) => Number((monthlyLeaves && monthlyLeaves[month]) || 0));
+            monthlyChart.data.labels = monthlyChartLabels;
+            monthlyChart.data.datasets[0].data = counts;
+            monthlyChart.update();
+        }
+
+        function updateTypeChart(leaveTypeStats) {
+            if (!typeChart) {
+                return;
+            }
+            const stats = Array.isArray(leaveTypeStats) ? leaveTypeStats : [];
+            const labels = stats.map((row) => row[0]);
+            const counts = stats.map((row) => Number(row[1] || 0));
+
+            typeChart.data.labels = labels;
+            typeChart.data.datasets[0].data = counts;
+            typeChart.data.datasets[0].backgroundColor = labels.map((label) => typeColors[label] || '#64748b');
+            typeChart.update();
+        }
+
+        function updateDashboardFromPayload(payload) {
+            if (!payload) {
+                return;
+            }
+            updateSummaryCards(payload.summary);
+            renderCoachSummary(payload.coach_summary || []);
+            updateMonthlyChart(payload.monthly_leaves || {});
+            updateTypeChart(payload.leave_type_stats || []);
+        }
+
+        let coachSearchDebounce = null;
+        let currentSearchRequestId = 0;
+
+        function setSearchLoading(isLoading) {
+            const loading = document.getElementById('leaveRecordsLoading');
+            const button = document.getElementById('coachSearchButton');
+            if (loading) {
+                loading.style.display = isLoading ? 'block' : 'none';
+            }
+            if (button) {
+                button.disabled = isLoading;
+                button.textContent = isLoading ? 'Searching...' : 'Search';
+            }
+        }
+
+        function updateLeaveRecordCount(count) {
+            const countLabel = document.getElementById('leaveRecordCount');
+            if (countLabel) {
+                countLabel.textContent = `${count} records`;
+            }
+        }
+
+        function updateLeaveRecordVisibility(count, emptyText) {
+            const tableWrap = document.getElementById('leaveRecordsTableWrap');
+            const empty = document.getElementById('leaveRecordsEmpty');
+            const emptyTextNode = document.getElementById('leaveRecordsEmptyText');
+            const hasRows = count > 0;
+
+            if (tableWrap) {
+                tableWrap.style.display = hasRows ? '' : 'none';
+            }
+            if (empty) {
+                empty.style.display = hasRows ? 'none' : '';
+            }
+            if (emptyTextNode && emptyText) {
+                emptyTextNode.textContent = emptyText;
+            }
+        }
+
+        async function fetchLeaveRecords() {
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            const center = document.getElementById('centerSelect').value;
+            const coach = document.getElementById('coachSelect').value;
+            const coachName = document.getElementById('coachSearchInput').value.trim();
+
+            const query = new URLSearchParams({
+                year,
+                month,
+                center,
+                coach,
+                coach_name: coachName,
+            });
+
+            const requestId = ++currentSearchRequestId;
+            setSearchLoading(true);
+
+            try {
+                const response = await fetch(`/leaves/search?${query.toString()}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Search failed with status ${response.status}`);
+                }
+
+                const payload = await response.json();
+                if (requestId !== currentSearchRequestId) {
+                    return;
+                }
+
+                const records = Array.isArray(payload.records) ? payload.records : [];
+                renderLeaveRecords(records);
+                updateLeaveRecordCount(records.length);
+                updateLeaveRecordVisibility(records.length, 'No records found.');
+                updateDashboardFromPayload(payload);
+            } catch (error) {
+                console.error(error);
+                if (requestId !== currentSearchRequestId) {
+                    return;
+                }
+                renderLeaveRecords([]);
+                updateLeaveRecordCount(0);
+                updateLeaveRecordVisibility(0, 'Unable to fetch records. Please try again.');
+                updateDashboardFromPayload({
+                    summary: {
+                        total_leave_days: 0,
+                        total_lop_days: 0,
+                        total_approved_days: 0,
+                        total_ot_days: 0,
+                    },
+                    coach_summary: [],
+                    monthly_leaves: {},
+                    leave_type_stats: [],
+                });
+            } finally {
+                if (requestId === currentSearchRequestId) {
+                    setSearchLoading(false);
+                }
+            }
+        }
+
+        function triggerCoachSearch(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            clearTimeout(coachSearchDebounce);
+            syncLeavesUrlFromFilters();
+            fetchLeaveRecords();
+        }
+
+        function scheduleCoachSearch() {
+            clearTimeout(coachSearchDebounce);
+            coachSearchDebounce = setTimeout(() => {
+                syncLeavesUrlFromFilters();
+                fetchLeaveRecords();
+            }, 300);
         }
 
         // Edit leave function
@@ -1022,7 +1400,7 @@ loadThemePreference();
                 const from = new Date(fromDate);
                 const to = new Date(toDate);
                 const baseDays = Math.floor((to - from) / (1000 * 60 * 60 * 24)) + 1;
-                const totalDays = duration === 'half_day' ? (baseDays * 0.5) : baseDays;
+                const totalDays = duration === 'half_day' ? (baseDays - 0.5) : baseDays;
                 document.getElementById(prefix + '_days_info').textContent = totalDays + ' day(s)';
             }
         }
@@ -1061,17 +1439,58 @@ loadThemePreference();
         }
         
         // Set today's date when page loads
-        document.addEventListener('DOMContentLoaded', setTodayAsDefault);
+        document.addEventListener('DOMContentLoaded', () => {
+            setTodayAsDefault();
+
+            const searchInput = document.getElementById('coachSearchInput');
+            const searchButton = document.getElementById('coachSearchButton');
+            const tbody = document.getElementById('leaveRecordsTbody');
+
+            if (searchButton) {
+                searchButton.addEventListener('click', triggerCoachSearch);
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('keydown', handleCoachSearchKey);
+                searchInput.addEventListener('input', scheduleCoachSearch);
+            }
+
+            if (tbody) {
+                tbody.addEventListener('click', (event) => {
+                    const button = event.target.closest('.leave-edit-btn');
+                    if (!button) {
+                        return;
+                    }
+
+                    const remarks = decodeURIComponent(button.dataset.remarks || '');
+                    editLeave(
+                        Number(button.dataset.id),
+                        Number(button.dataset.coachId),
+                        button.dataset.fromDate,
+                        button.dataset.toDate,
+                        button.dataset.leaveType,
+                        button.dataset.duration,
+                        remarks
+                    );
+                });
+            }
+        });
 
         // Charts
         const monthlyData = {{ monthly_leaves|tojson|safe }};
-        const months = Object.keys(monthlyData);
-        const counts = Object.values(monthlyData);
+        const calendarMonthsOrdered = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        const monthlyChartLabels = calendarMonthsOrdered.map((month) => month.substring(0, 3));
+        const counts = calendarMonthsOrdered.map((month) => Number((monthlyData && monthlyData[month]) || 0));
+        let monthlyChart = null;
+        let typeChart = null;
 
-        new Chart(document.getElementById('monthlyChart'), {
+        monthlyChart = new Chart(document.getElementById('monthlyChart'), {
             type: 'bar',
             data: {
-                labels: months.map(m => m.substring(0, 3)),
+                labels: monthlyChartLabels,
                 datasets: [{
                     label: 'Leaves',
                     data: counts,
@@ -1100,12 +1519,12 @@ loadThemePreference();
         const typeCounts = typeData.map(t => t[1]);
         const typeColors = {
             'Paid': '#10b981',
+            'LOP': '#f97316',
             'Unpaid': '#f97316',
-            'OT': '#a855f7',
-            'Week Off': '#15803d'
+            'OT': '#a855f7'
         };
 
-        new Chart(document.getElementById('typeChart'), {
+        typeChart = new Chart(document.getElementById('typeChart'), {
             type: 'doughnut',
             data: {
                 labels: typeLabels,
@@ -1126,5 +1545,7 @@ loadThemePreference();
             }
         });
     </script>
+</div><!-- /.sb-content -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>

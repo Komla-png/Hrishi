@@ -1,11 +1,13 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Hrishikesh Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
     <style>
 body{
@@ -14,6 +16,18 @@ body{
     padding:30px;
     padding-bottom: 90px;
     background:#000000;
+    scrollbar-gutter: stable both-edges;
+}
+
+html:not(.dashboard-ready) .kpi-card,
+html:not(.dashboard-ready) .kpi-progress-fill,
+html:not(.dashboard-ready) .chart-box,
+html:not(.dashboard-ready) .save-indicator,
+html:not(.dashboard-ready) .top-bar,
+html:not(.dashboard-ready) .btn,
+html:not(.dashboard-ready) #chart {
+    transition: none !important;
+    animation: none !important;
 }
 
 /* Bottom Navigation Bar */
@@ -77,6 +91,7 @@ body{
     padding:25px;
     border-radius:14px;
     box-shadow:0 10px 30px rgba(0,0,0,0.35);
+    overflow-x: hidden;
 }
 
 /* Header */
@@ -84,12 +99,59 @@ body{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    margin-bottom:20px;
+    gap:12px;
+    min-height:52px;
+    margin-bottom:16px;
+    padding:6px 0 12px;
+    border-bottom:1px solid #dbe3ef;
+}
+
+.top-bar-left {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.top-bar-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: nowrap;
 }
 
 h2{
     margin:0;
     color:#0f172a;
+    font-size:24px;
+    line-height:1.2;
+}
+
+.active-coaches-badge {
+    background: #0f766e;
+    color: white;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.top-year-select {
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    background: #ffffff;
+    color: #0f172a;
+    min-width: 86px;
 }
 
 /* Buttons */
@@ -116,6 +178,88 @@ h2{
     background:#64748b;
     color:white;
 }
+
+.btn-export-excel{
+    background:#16a34a;
+    color:white;
+}
+
+.top-control-btn {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.btn-export-excel:hover{
+    background:#15803d;
+}
+
+.email-report-bar{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    background:linear-gradient(135deg, #0f172a, #1e293b);
+    border:1px solid #334155;
+    border-radius:12px;
+    padding:12px;
+    margin-bottom:16px;
+}
+
+.email-report-bar .email-label{
+    color:#cbd5e1;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+}
+
+.email-report-bar .email-input{
+    min-width:260px;
+    flex:1;
+    background:#0b1222;
+    color:#e5e7eb;
+    border:1px solid #334155;
+    border-radius:10px;
+    padding:10px 12px;
+    font-size:14px;
+}
+
+.email-report-bar .email-input:focus{
+    outline:none;
+    border-color:#38bdf8;
+    box-shadow:0 0 0 3px rgba(56,189,248,0.2);
+}
+
+.email-report-bar .email-send-btn{
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(135deg, #2563eb, #1d4ed8);
+    color:white;
+    font-weight:700;
+    padding:10px 16px;
+    cursor:pointer;
+}
+
+.email-report-bar .email-send-btn:disabled{
+    opacity:0.65;
+    cursor:not-allowed;
+}
+
+.email-report-status{
+    width:100%;
+    min-height:18px;
+    font-size:13px;
+    color:#cbd5e1;
+}
+
+.email-report-status.success{ color:#86efac; }
+.email-report-status.error{ color:#fca5a5; }
 
 /* Table */
 table{
@@ -152,26 +296,274 @@ input{
 }
 
 /* KPI Cards */
+.kpi-calendar-shell {
+    position: relative;
+    min-height: 200px;
+}
+
+.kpi-calendar-shell::before,
+.kpi-calendar-shell::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    width: 28px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 3;
+}
+
+.kpi-calendar-shell::before {
+    left: 0;
+    background: linear-gradient(90deg, rgba(240,244,248,0.98) 0%, rgba(240,244,248,0) 100%);
+}
+
+.kpi-calendar-shell::after {
+    right: 0;
+    background: linear-gradient(270deg, rgba(240,244,248,0.98) 0%, rgba(240,244,248,0) 100%);
+}
+
+.kpi-calendar-shell.show-left-fade::before,
+.kpi-calendar-shell.show-right-fade::after {
+    opacity: 1;
+}
+
 .kpi-calendar{
-    display:grid;
-    grid-template-columns:repeat(6,1fr);
-    gap:10px;
+    display:flex;
+    gap:8px;
     margin-bottom:20px;
-    padding: 15px;
+    padding: 8px;
     background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
     border-radius: 12px;
+    overflow-x: auto;
+    overflow-y: visible;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148,163,184,0.6) transparent;
+}
+
+.kpi-calendar::-webkit-scrollbar {
+    height: 8px;
+}
+
+.kpi-calendar::-webkit-scrollbar-thumb {
+    background: rgba(148,163,184,0.55);
+    border-radius: 999px;
+}
+
+.kpi-calendar-single {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.kpi-month-controls {
+    display: grid;
+    grid-template-columns: 34px 1fr 34px;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 340px;
+    padding: 2px 0;
+}
+
+.kpi-month-nav {
+    border: 1px solid #cbd5e1;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    color: #0f172a;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kpi-month-nav:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15);
+}
+
+.kpi-neighbor-label {
+    font-size: 13px;
+    color: #475569;
+    font-weight: 600;
+    min-width: 68px;
+    text-align: center;
+}
+
+.kpi-nav-month-label {
+    border: 1px solid #cbd5e1;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    color: #0f172a;
+    border-radius: 9px;
+    min-height: 34px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+}
+
+.kpi-month-selector-native {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+.kpi-month-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 7px 12px;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.kpi-month-picker select {
+    border: none;
+    background: transparent;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    width: 145px;
+}
+
+.single-kpi-card-host {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.single-kpi-card-host .kpi-card {
+    width: 100%;
+    max-width: 340px;
+}
+
+.single-kpi-card-host.card-transition {
+    animation: kpiCardFadeSlide 0.35s ease;
+}
+
+.kpi-calendar-single.is-loading .single-kpi-card-host {
+    opacity: 0.88;
+    transform: translateY(-1px);
+    filter: saturate(0.96);
+    transition: opacity 0.06s linear, transform 0.1s ease, filter 0.1s ease;
+}
+
+.kpi-calendar-single.is-loading {
+    cursor: progress;
+}
+
+.kpi-calendar-single.is-loading .kpi-month-nav,
+.kpi-calendar-single.is-loading .kpi-month-picker select {
+    pointer-events: none;
+}
+
+.kpi-loading-state {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #2563eb;
+    min-height: 16px;
+    letter-spacing: 0.01em;
+}
+
+.kpi-calendar-single.is-loading .kpi-loading-state {
+    display: flex;
+    animation: kpiLoaderFadeIn 0.08s ease;
+}
+
+.kpi-loading-spinner {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(37, 99, 235, 0.25);
+    border-top-color: #2563eb;
+    animation: kpiLoaderSpin 0.8s linear infinite;
+    will-change: transform;
+}
+
+@keyframes kpiLoaderSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes kpiLoaderFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-1px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes kpiCardFadeSlide {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .kpi-card{
     background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
     border-radius: 10px;
-    padding: 12px;
+    padding: 8px 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
     font-size: 11px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid rgba(226, 232, 240, 0.8);
     position: relative;
     overflow: hidden;
+    flex: 0 0 188px;
+    min-width: 188px;
+    scroll-snap-align: start;
+}
+
+.kpi-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.kpi-month-title-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.kpi-month-trigger {
+    border: 1px solid #cbd5e1;
+    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+    color: #1e293b;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .kpi-card::before {
@@ -186,14 +578,17 @@ input{
 }
 
 .kpi-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.06);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 10px 22px rgba(15,23,42,0.16), 0 2px 8px rgba(15,23,42,0.08);
 }
 
 .kpi-card.current-month {
-    background: linear-gradient(145deg, #dbeafe 0%, #bfdbfe 100%);
-    border: 2px solid #3b82f6;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+    border: 2px solid #2563eb;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.14), 0 10px 24px rgba(15,23,42,0.18);
+    transform: scale(1.04);
+    z-index: 2;
+    flex-basis: 214px;
+    min-width: 214px;
 }
 
 .kpi-card.current-month::before {
@@ -214,10 +609,10 @@ input{
 }
 
 .kpi-month-label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     color: #1e293b;
-    margin-bottom: 8px;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -243,7 +638,7 @@ input{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 0;
+    padding: 2px 0;
     border-bottom: 1px dashed #e2e8f0;
 }
 
@@ -337,6 +732,36 @@ input{
     letter-spacing: 0.3px;
 }
 
+.kpi-status-badge-inline {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+
+.kpi-status-badge-inline.excellent {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.kpi-status-badge-inline.good {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.kpi-status-badge-inline.poor {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.kpi-status-badge-inline.no-data {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
 .kpi-status-badge.excellent {
     background: #dcfce7;
     color: #15803d;
@@ -366,6 +791,7 @@ input{
     box-shadow: 0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
     border: 1px solid #e2e8f0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 430px;
 }
 
 .chart-box:hover {
@@ -385,6 +811,8 @@ input{
 
 #chart {
     max-height: 400px;
+    min-height: 320px;
+    display: block;
     transition: opacity 0.3s ease;
 }
 
@@ -420,26 +848,70 @@ input{
 
 /* Save Indicator */
 .save-indicator {
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 13px;
+    min-height: 24px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: opacity 0.22s ease;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    cursor: default;
+    pointer-events: none;
+    user-select: none;
+    box-shadow: none;
+    border: 1px solid transparent;
 }
 
 .save-indicator.saving {
-    background: #fbbf24;
-    color: #78350f;
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
 }
 
 .save-indicator.saved {
-    background: #6ee7b7;
-    color: #065f46;
+    background: rgba(34, 197, 94, 0.14);
+    color: #166534;
+    border-color: rgba(34, 197, 94, 0.3);
 }
 
 .save-indicator.error {
-    background: #f87171;
-    color: #7f1d1d;
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
+.save-indicator.is-hidden {
+    opacity: 0;
+}
+
+.save-toast-wrap {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 3000;
+}
+
+.save-toast {
+    background: #0f172a;
+    color: #f8fafc;
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 12px 30px rgba(2, 6, 23, 0.35);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.save-toast.show {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* Modal */
@@ -589,21 +1061,24 @@ input{
     .container {
         padding: 15px;
         border-radius: 10px;
+        overflow-x: auto;
     }
 
     .top-bar {
-        flex-direction: column;
-        gap: 15px;
+        flex-direction: row;
+        gap: 10px;
         align-items: flex-start;
+        flex-wrap: wrap;
     }
 
     .top-bar h2 {
         font-size: 18px;
     }
 
-    .top-bar > div:last-child {
+    .top-bar-right {
         width: 100%;
-        justify-content: space-between;
+        justify-content: flex-start;
+        flex-wrap: wrap;
     }
 
     .btn {
@@ -624,16 +1099,42 @@ input{
         font-size: 13px;
     }
 
-    /* KPI Calendar - 2 columns on mobile */
+    /* KPI Calendar - compact horizontal scroll on mobile */
     .kpi-calendar {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-        padding: 12px;
+        gap: 8px;
+        padding: 8px;
+        scroll-snap-type: x mandatory;
+    }
+
+    .kpi-calendar-single {
+        display: flex;
+        gap: 12px;
+    }
+
+    .kpi-month-controls {
+        gap: 8px;
+    }
+
+    .kpi-neighbor-label {
+        min-width: 58px;
+        font-size: 12px;
+    }
+
+    .kpi-month-picker select {
+        width: 132px;
+        font-size: 13px;
     }
 
     .kpi-card {
-        padding: 12px;
+        padding: 8px 9px;
         font-size: 11px;
+        flex-basis: 78vw;
+        min-width: 78vw;
+    }
+
+    .kpi-card.current-month {
+        flex-basis: 82vw;
+        min-width: 82vw;
     }
     
     .kpi-month-label {
@@ -669,7 +1170,6 @@ input{
         margin-top: 8px;
     }
 
-    /* Table adjustments - make scrollable */
     table {
         font-size: 11px;
         min-width: 100%;
@@ -699,6 +1199,7 @@ input{
     /* Chart canvas responsive */
     #chart {
         max-height: 300px;
+        min-height: 240px;
     }
 
     /* Add center form */
@@ -770,6 +1271,21 @@ input{
         padding: 10px;
         gap: 12px;
     }
+
+    .kpi-month-controls {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .kpi-month-picker {
+        justify-content: center;
+    }
+
+    .kpi-neighbor-label {
+        display: none;
+    }
     
     .kpi-card {
         padding: 16px;
@@ -840,63 +1356,6 @@ input{
 }
 
 /* ================= THEME VARIATIONS ================= */
-/* Light Theme */
-body.light-theme {
-    background: #f3f4f6;
-}
-
-body.light-theme .container {
-    background: #ffffff;
-    color: #1f2937;
-}
-
-body.light-theme h2 {
-    color: #1f2937;
-}
-
-body.light-theme th {
-    background: #374151;
-    color: white;
-}
-
-body.light-theme td {
-    border-bottom: 1px solid #d1d5db;
-}
-
-body.light-theme tr:hover {
-    background: #f9fafb;
-}
-
-body.light-theme .kpi-card {
-    background: #f9fafb;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-body.light-theme .kpi-card.current-month {
-    border: 2px solid #3b82f6;
-    background: #eff6ff;
-}
-
-body.light-theme .chart-box {
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-}
-
-body.light-theme .modal-content {
-    background: #ffffff;
-    color: #1f2937;
-}
-
-body.light-theme input {
-    background: #f3f4f6;
-    color: #1f2937;
-    border: 1px solid #d1d5db;
-}
-
-body.light-theme .btn {
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
 /* Dark Theme (default) */
 body.dark-theme {
     background: #0f0f0f;
@@ -930,9 +1389,139 @@ body.dark-theme .kpi-card {
     color: #e5e7eb;
 }
 
+body.dark-theme .kpi-calendar-shell::before {
+    background: linear-gradient(90deg, rgba(15,23,42,0.98) 0%, rgba(15,23,42,0) 100%);
+}
+
+body.dark-theme .kpi-calendar-shell::after {
+    background: linear-gradient(270deg, rgba(15,23,42,0.98) 0%, rgba(15,23,42,0) 100%);
+}
+
+body.dark-theme .kpi-month-picker,
+body.dark-theme .kpi-month-nav {
+    background: linear-gradient(145deg, #0f172a 0%, #111827 100%);
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+body.dark-theme .kpi-nav-month-label,
+body.dark-theme .kpi-month-trigger {
+    background: linear-gradient(145deg, #0f172a 0%, #111827 100%);
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+body.dark-theme .kpi-month-picker select {
+    color: #e2e8f0;
+}
+
+body.dark-theme .kpi-neighbor-label {
+    color: #94a3b8;
+}
+
+body.dark-theme .kpi-status-badge-inline.excellent {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+}
+
+body.dark-theme .kpi-status-badge-inline.good {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+}
+
+body.dark-theme .kpi-status-badge-inline.poor {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+body.dark-theme .kpi-status-badge-inline.no-data {
+    background: rgba(148, 163, 184, 0.18);
+    color: #cbd5e1;
+}
+
+body.dark-theme .kpi-loading-state {
+    color: #7dd3fc;
+}
+
+body.dark-theme .kpi-loading-spinner {
+    border-color: rgba(125, 211, 252, 0.28);
+    border-top-color: #7dd3fc;
+}
+
 body.dark-theme .kpi-card.current-month {
-    border: 2px solid #60a5fa;
-    background: #1e3a5f;
+    border: 2px solid #38bdf8;
+    background: linear-gradient(145deg, #0b2238 0%, #12304b 100%);
+    box-shadow: 0 0 0 2px rgba(56,189,248,0.2), 0 10px 22px rgba(2,6,23,0.46);
+    transform: scale(1.04);
+}
+
+/* ── Dark theme: KPI row readability improvements ── */
+body.dark-theme .kpi-row {
+    border-bottom: 1px dashed rgba(255,255,255,0.25);
+}
+
+body.dark-theme .kpi-row span {
+    color: #94a3b8;
+    font-size: 10px;
+}
+
+body.dark-theme .kpi-row strong {
+    font-size: 12px;
+    font-weight: 700;
+    color: #cbd5f5;
+}
+
+body.dark-theme .kpi-row.revenue-row strong {
+    color: #22c55e;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+body.dark-theme .kpi-row.target-row strong {
+    color: #38bdf8;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+body.dark-theme .kpi-row.achieved-row strong {
+    font-weight: 700;
+}
+
+body.dark-theme .kpi-row.achieved-row strong.excellent {
+    background: rgba(34, 197, 94, 0.18);
+    color: #4ade80;
+}
+
+body.dark-theme .kpi-row.achieved-row strong.good {
+    background: rgba(249, 115, 22, 0.18);
+    color: #fb923c;
+}
+
+body.dark-theme .kpi-row.achieved-row strong.poor {
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+}
+
+body.dark-theme .kpi-row.salary-row strong {
+    color: #2dd4bf;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+body.dark-theme .kpi-progress-bar {
+    background: rgba(255,255,255,0.15);
+}
+
+body.dark-theme .kpi-progress-fill.excellent {
+    background: #22c55e;
+}
+
+body.dark-theme .kpi-progress-fill.good {
+    background: #f97316;
+}
+
+body.dark-theme .kpi-progress-fill.poor {
+    background: #ef4444;
 }
 
 body.dark-theme .chart-box {
@@ -1253,140 +1842,26 @@ body.dark-theme .btn-cancel-settings {
 }
 
 </style>
+    <link rel="stylesheet" href="/static/unified-theme.css">
+    <link rel="stylesheet" href="/static/sidebar.css">
 </head>
 
 
 <body>
-<div id="sidebar" class="sidebar">
-    <div class="sidebar-header">
-        <span class="sidebar-title">🏸 Hrishikesh</span>
-        <button id="sidebarToggle" class="sidebar-toggle">☰</button>
-    </div>
-    <nav class="sidebar-nav">
-        <a href="/dashboard" class="sidebar-link"><span class="sidebar-icon">📊</span><span class="sidebar-text">Dashboard</span></a>
-        <a href="/coaches" class="sidebar-link"><span class="sidebar-icon">🏋️</span><span class="sidebar-text">Coaches</span></a>
-        <a href="/analytics" class="sidebar-link"><span class="sidebar-icon">📈</span><span class="sidebar-text">Analytics</span></a>
-        <a href="/leaves" class="sidebar-link"><span class="sidebar-icon">🗓️</span><span class="sidebar-text">Leaves</span></a>
-        <a href="/tasks" class="sidebar-link"><span class="sidebar-icon">✅</span><span class="sidebar-text">Tasks</span></a>
-        <a href="/backups" class="sidebar-link"><span class="sidebar-icon">🗄️</span><span class="sidebar-text">Backups</span></a>
-        <a href="/centers" class="sidebar-link"><span class="sidebar-icon">🏢</span><span class="sidebar-text">All Centers</span></a>
-        <a href="/settings" class="sidebar-link"><span class="sidebar-icon">⚙️</span><span class="sidebar-text">Settings</span></a>
-        <button id="themeToggle" class="sidebar-link" style="margin-top:18px;display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:none;font:inherit;outline:none;">
-            <span class="sidebar-icon">🌙</span><span class="sidebar-text">Night Mode</span>
-        </button>
-    </nav>
-
+{% include '_sidebar.html' %}
 <script>
-// Theme toggle logic
-document.addEventListener('DOMContentLoaded', function() {
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-            const isDark = document.body.classList.contains('dark-theme');
-            document.body.classList.toggle('dark-theme', !isDark);
-            document.body.classList.toggle('light-theme', isDark);
-            // Save preference
-            let prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
-            prefs.theme = isDark ? 'light' : 'dark';
-            localStorage.setItem('dashboardPreferences', JSON.stringify(prefs));
-        });
-    }
-    // On load, set theme from localStorage
+(function () {
     try {
         const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
-        if (prefs.theme === 'light') {
-            document.body.classList.add('light-theme');
-            document.body.classList.remove('dark-theme');
-        } else {
-            document.body.classList.add('dark-theme');
-            document.body.classList.remove('light-theme');
+        const layoutMode = prefs['layout-mode'] || 'layout-normal';
+        if (/^layout-(normal|compact|expanded)$/.test(layoutMode)) {
+            document.body.classList.add(layoutMode);
         }
-    } catch(e) {}
-});
+    } catch (e) {
+        document.body.classList.add('layout-normal');
+    }
+}());
 </script>
-</div>
-
-<style>
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    width: 220px;
-    background: #1e293b;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    z-index: 2001;
-    transition: width 0.2s;
-}
-    .sidebar.collapsed { width: 60px; }
-    .sidebar.collapsed .sidebar-title { display: none; }
-    .sidebar.collapsed .sidebar-text { display: none; }
-    .sidebar.collapsed .sidebar-link { justify-content: center; padding: 12px 0; font-size: 22px; }
-    .sidebar.collapsed .sidebar-icon { font-size: 22px; }
-.sidebar-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 16px 12px 16px;
-}
-.sidebar-title { font-size: 20px; font-weight: bold; }
-.sidebar-toggle {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 22px;
-    cursor: pointer;
-}
-.sidebar-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 20px;
-}
-.sidebar-link {
-    color: #fff;
-    text-decoration: none;
-    padding: 12px 24px;
-    border-radius: 8px 0 0 8px;
-    font-size: 16px;
-    transition: background 0.2s, color 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.sidebar-link:hover, .sidebar-link.active {
-    background: #3b82f6;
-    color: #fff;
-}
-.sidebar.collapsed .sidebar-title { display: none; }
-.sidebar.collapsed .sidebar-link { justify-content: center; padding: 12px 0; font-size: 20px; }
-.sidebar.collapsed .sidebar-link span { display: none; }
-    .container { margin-left: 220px; transition: margin-left 0.2s; }
-    #sidebar.collapsed ~ .container, .sidebar.collapsed ~ .container { margin-left: 60px !important; }
-@media (max-width: 900px) {
-    .sidebar { position: fixed; width: 60px; }
-    .container { margin-left: 60px; }
-}
-.sidebar-logout {
-    margin-top: auto;
-    padding: 20px 0 16px 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-</style>
-
-<script>
-const sidebar = document.getElementById('sidebar');
-const sidebarToggle = document.getElementById('sidebarToggle');
-    sidebarToggle.onclick = function() {
-        sidebar.classList.toggle('collapsed');
-        document.querySelector('.container').style.marginLeft = sidebar.classList.contains('collapsed') ? '60px' : '220px';
-    };
-</script>
-
 <!-- Flash Messages -->
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
@@ -1407,67 +1882,39 @@ const sidebarToggle = document.getElementById('sidebarToggle');
 {% endif %}
 {% endwith %}
 
+<div class="sb-content">
 <div class="container">
 
 <div class="top-bar">
-    <h2>🏸 Centers Performance</h2>
-    <div style="display: flex; align-items: center; gap: 25px;">
-        <div style="background: #10b981; color: white; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+    <div class="top-bar-left">
+        <h2>🏸 Centers Performance</h2>
+    </div>
+    <div class="top-bar-right">
+        <div class="active-coaches-badge">
             👨‍🏫 Active Coaches: <span id="activeCoachCount">{{ active_coach_count }}</span>
         </div>
-        <div id="saveIndicator" class="save-indicator saved">Saved</div>
         <!-- Year Selector -->
-        <select id="yearSelector" onchange="window.location.href='/dashboard?month={{ month }}&year='+this.value" style="padding: 8px 12px; border-radius: 8px; border: 2px solid #e2e8f0; font-weight: 600; cursor: pointer;">
+        <select id="yearSelector" class="top-year-select" onchange="window.location.href='/dashboard?month={{ month }}&year='+this.value">
             {% for y in range(2023, 2031) %}
             <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
             {% endfor %}
         </select>
+        <button type="button" class="btn btn-export-excel top-control-btn" onclick="exportDashboardToExcel()">📤 Export</button>
+        <button type="button" id="saveDashboardBtn" class="btn btn-secondary top-control-btn">💾 Save</button>
+        <div id="saveIndicator" class="save-indicator saved">✓ Saved</div>
+        <div id="saveToastWrap" class="save-toast-wrap" aria-live="polite" aria-atomic="true"></div>
     </div>
 </div>
 
 <!-- ================= KPI CALENDAR (MONTHLY) ================= -->
 <div class="kpi-section-title" data-widget="kpi-calendar">📅 Monthly Performance</div>
-<div class="kpi-calendar" data-widget="kpi-calendar">
-    {% for k in monthly_kpis %}
-    {% set status = 'excellent' if k.achieved_percent >= 100 else ('good' if k.achieved_percent >= 80 else ('poor' if k.achieved_percent > 0 else 'no-data')) %}
-    <a href="/dashboard?month={{ k.month }}&year={{ year }}" style="text-decoration: none; color: inherit;">
-        <div class="kpi-card {% if k.month == month %}current-month{% endif %} kpi-{{ status }}" data-month="{{ k.month }}">
-            {% if k.achieved_percent > 0 %}
-            <span class="kpi-status-badge {{ status }}">
-                {% if status == 'excellent' %}✅ On Target{% elif status == 'good' %}⚠️ Close{% else %}❌ Behind{% endif %}
-            </span>
-            {% endif %}
-            <div class="kpi-month-label">
-                <span>{{ k.month }}</span>
-                <span class="month-icon">{{ loop.index }}</span>
-            </div>
-            <div class="kpi-row revenue-row">
-                <span>💰 Revenue</span>
-                <strong class="kpi-total-revenue">₹{{ "{:,.0f}".format(k.total_revenue) }}</strong>
-            </div>
-            <div class="kpi-row target-row">
-                <span>🎯 Target</span>
-                <strong class="kpi-total-target">₹{{ "{:,.0f}".format(k.total_target) }}</strong>
-            </div>
-            <div class="kpi-row achieved-row">
-                <span>📊 Achievement</span>
-                <strong class="kpi-achieved {{ status }}">{{ k.achieved_percent }}%</strong>
-            </div>
-            <div class="kpi-row salary-row">
-                <span>👥 Salary Output</span>
-                <strong class="kpi-salary" style="color: {% if k.salary_percent > 30 %}#dc2626{% elif k.salary_percent > 0 %}#16a34a{% else %}#6b7280{% endif %};">{{ k.salary_percent }}%{% if k.salary_percent > 30 %} ⚠️{% endif %}</strong>
-            </div>
-            <div class="kpi-progress-bar">
-                <div class="kpi-progress-fill {{ status }}" style="width: {{ [k.achieved_percent, 100]|min }}%;"></div>
-            </div>
-        </div>
-    </a>
-    {% endfor %}
+<div id="yearlyKpiShell" class="kpi-calendar-shell" data-widget="kpi-calendar">
+    <div id="yearlyKpiGrid" class="kpi-calendar"></div>
 </div>
 
 <!-- ================= CHART ================= -->
 <div class="chart-box" data-widget="revenue-chart">
-    <h2>📊 Revenue vs Target</h2>
+    <h2 id="revenueChartTitle">📊 Revenue vs Target</h2>
     <canvas id="chart"></canvas>
 </div>
 
@@ -1525,7 +1972,6 @@ const sidebarToggle = document.getElementById('sidebarToggle');
     </td>
 </tr>
 {% endfor %}
-
 </table>
 </form>
 
@@ -1683,10 +2129,6 @@ tbody tr { transition: background 0.2s, opacity 0.2s; }
 }
 </style>
 
-<br>
-<center>
-<button class="btn">💾 Save</button>
-</center>
 </form>
 
 <!-- Add Center -->
@@ -1697,6 +2139,13 @@ tbody tr { transition: background 0.2s, opacity 0.2s; }
         <input type="text" id="new_center_name" name="name" placeholder="Center name" required style="width: 180px; flex: 1; min-width: 150px;">
         <button class="btn btn-secondary" type="submit">➕ Add Center</button>
     </form>
+</div>
+
+<div class="email-report-bar" style="margin-top: 16px;">
+    <label class="email-label" for="dashboardEmailRecipients">Email Recipients</label>
+    <input id="dashboardEmailRecipients" class="email-input" type="text" placeholder="owner@example.com, finance@example.com" aria-label="Email recipients for dashboard report">
+    <button id="sendDashboardEmailBtn" class="email-send-btn" type="button">Send Dashboard Report</button>
+    <div id="dashboardEmailStatus" class="email-report-status"></div>
 </div>
 
 </div>
@@ -1798,6 +2247,36 @@ tbody tr { transition: background 0.2s, opacity 0.2s; }
 const labels = [{% for c in centers %}"{{c.name}}",{% endfor %}];
 let revenue = [{% for c in centers %}{{c.revenue}},{% endfor %}];
 let target = [{% for c in centers %}{{c.target}},{% endfor %}];
+
+const KPI_MONTH_ORDER = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DEFAULT_EMPTY_MONTH_KPI = {
+    total_revenue: 0,
+    total_target: 0,
+    achieved_percent: 0,
+    salary_percent: 0
+};
+
+const monthlyData = {
+{% for k in monthly_kpis %}
+    '{{ k.month }}': {
+        total_revenue: Number({{ k.total_revenue or 0 }}),
+        total_target: Number({{ k.total_target or 0 }}),
+        achieved_percent: Number({{ k.achieved_percent or 0 }}),
+        salary_percent: Number({{ k.salary_percent or 0 }})
+    },
+{% endfor %}
+};
+
+const monthlyPerformanceState = {
+    selectedMonth: null,
+    selectedYear: Number('{{ year }}'),
+    selectorInitialized: false,
+    useMonthlyChart: false,
+    isNavigating: false,
+    pendingNavigationUrl: null
+};
+
+window.monthlyPerformanceState = monthlyPerformanceState;
 
 // Calculate bullet chart segments
 let bulletData = revenue.map((rev, idx) => {
@@ -1948,7 +2427,7 @@ const revenueTargetChart = new Chart(ctx, {
                     boxHeight: 8,
                     padding: 20,
                     font: { size: 12, weight: '600', family: "'Inter', 'Segoe UI', Arial, sans-serif" },
-                    color: '#475569',
+                    color: () => document.body.classList.contains('dark-theme') ? '#cbd5e1' : '#475569',
                     usePointStyle: true,
                     pointStyle: 'rect'
                 }
@@ -2001,7 +2480,7 @@ const revenueTargetChart = new Chart(ctx, {
                     weight: 'bold',
                     family: "'Inter', 'Segoe UI', Arial, sans-serif"
                 },
-                color: '#1e293b',
+                color: () => document.body.classList.contains('dark-theme') ? '#e2e8f0' : '#1e293b',
                 formatter: function(value, context) {
                     if (value === 0) return '';
                     const idx = context.dataIndex;
@@ -2038,7 +2517,7 @@ const revenueTargetChart = new Chart(ctx, {
                         return '₹' + value;
                     },
                     font: { size: 11, weight: '500' },
-                    color: '#64748b',
+                    color: () => document.body.classList.contains('dark-theme') ? '#94a3b8' : '#64748b',
                     padding: 10
                 }
             },
@@ -2050,7 +2529,7 @@ const revenueTargetChart = new Chart(ctx, {
                 },
                 ticks: {
                     font: { size: 12, weight: '600' },
-                    color: '#1e293b',
+                    color: () => document.body.classList.contains('dark-theme') ? '#f1f5f9' : '#1e293b',
                     padding: 8
                 }
             }
@@ -2080,13 +2559,49 @@ window.addEventListener('beforeunload', () => {
 // ================= AUTO SAVE (DEBOUNCED) =================
 const form = document.getElementById('dashboardForm');
 const saveIndicator = document.getElementById('saveIndicator');
+const saveDashboardBtn = document.getElementById('saveDashboardBtn');
+const saveToastWrap = document.getElementById('saveToastWrap');
 let saveTimer = null;
 let inFlight = null;
+const CENTER_TABLE_SAVE_DELAY_MS = 700;
+let hideSavedIndicatorTimer = null;
+
+function showSaveToast(message) {
+    if (!saveToastWrap) return;
+    const toast = document.createElement('div');
+    toast.className = 'save-toast';
+    toast.textContent = message;
+    saveToastWrap.innerHTML = '';
+    saveToastWrap.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast.parentElement) toast.remove();
+        }, 220);
+    }, 2600);
+}
 
 function setIndicator(state, text) {
     saveIndicator.classList.remove('saving', 'saved', 'error');
+    saveIndicator.classList.remove('is-hidden');
     if (state) saveIndicator.classList.add(state);
     saveIndicator.textContent = text;
+
+    if (hideSavedIndicatorTimer) {
+        clearTimeout(hideSavedIndicatorTimer);
+        hideSavedIndicatorTimer = null;
+    }
+
+    if (state === 'saved') {
+        hideSavedIndicatorTimer = setTimeout(() => {
+            saveIndicator.classList.add('is-hidden');
+        }, 4500);
+    }
 }
 
 function applyServerUpdate(payload) {
@@ -2140,34 +2655,30 @@ function applyServerUpdate(payload) {
             const exceeded = Math.max(0, rev - tgt);
             return { achieved, remaining, exceeded, revenue: rev, target: tgt };
         });
-        
+
         revenueTargetChart.data.datasets[0].data = bulletData.map(d => d.achieved);
         revenueTargetChart.data.datasets[1].data = bulletData.map(d => d.remaining);
         revenueTargetChart.data.datasets[2].data = bulletData.map(d => d.exceeded);
         revenueTargetChart.update();
     }
 
-    // Update KPI calendar values (all months)
+    // Update month data source and refresh visible yearly KPI cards.
     if (Array.isArray(payload.monthly_kpis)) {
         payload.monthly_kpis.forEach(k => {
-            const card = document.querySelector(`.kpi-card[data-month="${k.month}"]`);
-            if (!card) return;
-            const rev = card.querySelector('.kpi-total-revenue');
-            const tar = card.querySelector('.kpi-total-target');
-            const ach = card.querySelector('.kpi-achieved');
-            const sal = card.querySelector('.kpi-salary');
-            if (rev) rev.textContent = k.total_revenue;
-            if (tar) tar.textContent = k.total_target;
-            if (ach) ach.textContent = `${k.achieved_percent}%`;
-            if (sal) {
-                sal.textContent = `${k.salary_percent}%${k.salary_percent > 30 ? ' ⚠️' : ''}`;
-                sal.style.color = k.salary_percent > 30 ? '#dc2626' : (k.salary_percent > 0 ? '#16a34a' : '#6b7280');
-            }
+            monthlyData[k.month] = {
+                total_revenue: Number(k.total_revenue || 0),
+                total_target: Number(k.total_target || 0),
+                achieved_percent: Number(k.achieved_percent || 0),
+                salary_percent: Number(k.salary_percent || 0)
+            };
         });
+
+        renderYearlyPerformanceCards(monthlyPerformanceState.selectedMonth || '{{ month }}');
     }
 }
 
-async function autoSave() {
+async function autoSave(options = {}) {
+    const { showToast = false } = options;
     // Abort previous in-flight request (keep latest edits)
     if (inFlight && typeof inFlight.abort === 'function') {
         inFlight.abort();
@@ -2188,7 +2699,8 @@ async function autoSave() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         applyServerUpdate(data);
-        setIndicator('saved', 'Saved');
+        setIndicator('saved', '✓ Saved');
+        if (showToast) showSaveToast('✓ Changes saved successfully');
     } catch (e) {
         // Ignore abort errors (we started a newer save)
         if (e && e.name === 'AbortError') return;
@@ -2197,6 +2709,71 @@ async function autoSave() {
     }
 }
 
+function queueAutoSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    setIndicator('saving', 'Saving...');
+    saveTimer = setTimeout(autoSave, CENTER_TABLE_SAVE_DELAY_MS);
+}
+
+async function handleManualSave() {
+    if (!saveDashboardBtn) {
+        await autoSave({ showToast: true });
+        return;
+    }
+
+    saveDashboardBtn.disabled = true;
+    const originalText = saveDashboardBtn.textContent;
+    saveDashboardBtn.textContent = 'Saving...';
+
+    if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+    }
+
+    try {
+        await autoSave({ showToast: true });
+    } finally {
+        saveDashboardBtn.disabled = false;
+        saveDashboardBtn.textContent = originalText;
+    }
+}
+
+if (saveDashboardBtn) {
+    saveDashboardBtn.addEventListener('click', handleManualSave);
+}
+
+function isZeroLikeValue(value) {
+    const normalized = String(value ?? '').trim();
+    return normalized === '0' || normalized === '0.00';
+}
+
+function selectWholeInput(input) {
+    requestAnimationFrame(() => {
+        input.select();
+    });
+}
+
+form.querySelectorAll('input[name^="name"], input[name^="revenue"], input[name^="target"]').forEach((input) => {
+    input.addEventListener('focus', () => {
+        selectWholeInput(input);
+    });
+
+    input.addEventListener('click', () => {
+        if (input.type === 'number' && isZeroLikeValue(input.value)) {
+            input.value = '';
+            return;
+        }
+        selectWholeInput(input);
+    });
+
+    input.addEventListener('blur', () => {
+        if (input.type !== 'number') return;
+        if (String(input.value ?? '').trim() !== '') return;
+        input.value = '0.00';
+        queueAutoSave();
+    });
+});
+
 form.addEventListener('input', (e) => {
     const el = e.target;
     if (!el) return;
@@ -2204,10 +2781,543 @@ form.addEventListener('input', (e) => {
     if (!el.name) return;
 
     // Debounce to avoid saving on every keystroke
-    if (saveTimer) clearTimeout(saveTimer);
-    setIndicator('saving', 'Saving...');
-    saveTimer = setTimeout(autoSave, 700);
+    queueAutoSave();
 });
+
+async function sendDashboardEmailReport() {
+    const recipientsInput = document.getElementById('dashboardEmailRecipients');
+    const sendBtn = document.getElementById('sendDashboardEmailBtn');
+    const status = document.getElementById('dashboardEmailStatus');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        || document.querySelector('input[name="csrf_token"]')?.value;
+
+    const recipients = (recipientsInput?.value || '').trim();
+    status.className = 'email-report-status';
+
+    if (!recipients) {
+        status.classList.add('error');
+        status.textContent = 'Please enter at least one email.';
+        recipientsInput?.focus();
+        return;
+    }
+
+    if (!csrfToken) {
+        status.classList.add('error');
+        status.textContent = 'Missing CSRF token. Refresh and try again.';
+        return;
+    }
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
+    status.textContent = 'Sending dashboard report...';
+
+    try {
+        const response = await fetch('/dashboard/send-email-report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify({
+                recipients,
+                month: '{{ month }}',
+                year: {{ year }},
+            }),
+        });
+
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+            throw new Error(payload.error || 'Unable to send dashboard report.');
+        }
+
+        status.classList.add('success');
+        status.textContent = payload.message || 'Dashboard report sent successfully.';
+    } catch (error) {
+        status.classList.add('error');
+        status.textContent = error.message || 'Unable to send dashboard report.';
+    } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send Dashboard Report';
+    }
+}
+
+function parseCurrencyValue(text) {
+    const normalized = (text || '').replace(/[^0-9.-]/g, '');
+    return normalized ? Number(normalized) : 0;
+}
+
+function parsePercentValue(text) {
+    const normalized = (text || '').replace(/[^0-9.-]/g, '');
+    return normalized ? Number(normalized) : 0;
+}
+
+function formatINRCurrency(value) {
+    return `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+}
+
+function getMonthStatus(achievedPercent) {
+    if (achievedPercent >= 100) return 'excellent';
+    if (achievedPercent >= 80) return 'good';
+    if (achievedPercent > 0) return 'poor';
+    return 'no-data';
+}
+
+function getMonthAtOffset(monthName, offset) {
+    const currentIndex = Math.max(0, KPI_MONTH_ORDER.indexOf(monthName));
+    const nextIndex = (currentIndex + offset + KPI_MONTH_ORDER.length) % KPI_MONTH_ORDER.length;
+    return KPI_MONTH_ORDER[nextIndex];
+}
+
+function getMonthKpi(monthName) {
+    return monthlyData[monthName] || DEFAULT_EMPTY_MONTH_KPI;
+}
+
+function scrollKpiCardsToRecent(activeMonth) {
+    const host = document.getElementById('yearlyKpiGrid');
+    if (!host) return;
+
+    const cards = Array.from(host.querySelectorAll('.kpi-card[data-month]'));
+    if (!cards.length) return;
+
+    const activeIndex = Math.max(0, cards.findIndex((card) => card.dataset.month === activeMonth));
+    const startIndex = Math.max(0, activeIndex - 2);
+    const targetCard = cards[startIndex];
+    if (!targetCard) return;
+
+    host.scrollTo({ left: Math.max(0, targetCard.offsetLeft - 8), behavior: 'auto' });
+}
+
+function updateKpiScrollFades() {
+    const host = document.getElementById('yearlyKpiGrid');
+    const shell = document.getElementById('yearlyKpiShell');
+    if (!host || !shell) return;
+
+    const maxScrollLeft = Math.max(0, host.scrollWidth - host.clientWidth);
+    shell.classList.toggle('show-left-fade', host.scrollLeft > 6);
+    shell.classList.toggle('show-right-fade', host.scrollLeft < maxScrollLeft - 6);
+}
+
+function buildDashboardMonthUrl(monthName) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('month', monthName);
+    url.searchParams.set('year', String(monthlyPerformanceState.selectedYear));
+    return url.toString();
+}
+
+function prefetchDashboardMonth(monthName) {
+    if (!monthName || !KPI_MONTH_ORDER.includes(monthName)) return;
+    const href = buildDashboardMonthUrl(monthName);
+    const prefetchId = `dashboard-month-prefetch-${monthlyPerformanceState.selectedYear}-${monthName}`;
+    if (document.getElementById(prefetchId)) return;
+
+    const link = document.createElement('link');
+    link.id = prefetchId;
+    link.rel = 'prefetch';
+    link.as = 'document';
+    link.href = href;
+    document.head.appendChild(link);
+}
+
+function warmDashboardMonthRequest(monthName) {
+    if (!monthName || !KPI_MONTH_ORDER.includes(monthName)) return;
+    const href = buildDashboardMonthUrl(monthName);
+    fetch(href, {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'force-cache'
+    }).catch(() => {
+        // Ignore warm-up failures; normal navigation still works.
+    });
+}
+
+function prefetchNeighborMonths(monthName) {
+    prefetchDashboardMonth(monthName);
+    prefetchDashboardMonth(getMonthAtOffset(monthName, -1));
+    prefetchDashboardMonth(getMonthAtOffset(monthName, 1));
+    warmDashboardMonthRequest(getMonthAtOffset(monthName, -1));
+    warmDashboardMonthRequest(getMonthAtOffset(monthName, 1));
+}
+
+function getKpiMonthStorageKey() {
+    return `dashboardSelectedKpiMonth:${monthlyPerformanceState.selectedYear}`;
+}
+
+function saveSelectedKpiMonth(monthName) {
+    try {
+        localStorage.setItem(getKpiMonthStorageKey(), monthName);
+    } catch (e) {
+        // Ignore storage failures in private/incognito modes.
+    }
+}
+
+function loadSavedKpiMonth() {
+    try {
+        const saved = localStorage.getItem(getKpiMonthStorageKey());
+        return KPI_MONTH_ORDER.includes(saved) ? saved : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function shouldIgnoreArrowShortcut(target) {
+    if (!target) return false;
+    const tagName = (target.tagName || '').toLowerCase();
+    if (['input', 'textarea', 'select', 'button'].includes(tagName)) return true;
+    if (target.isContentEditable) return true;
+    return false;
+}
+
+function updateMonthlyChart(monthName) {
+    if (typeof revenueTargetChart === 'undefined') return;
+    const data = getMonthKpi(monthName);
+    const rev = Number(data.total_revenue || 0);
+    const tgt = Number(data.total_target || 0);
+    const achieved = Math.min(rev, tgt);
+    const remaining = Math.max(0, tgt - rev);
+    const exceeded = Math.max(0, rev - tgt);
+
+    bulletData = [{ achieved, remaining, exceeded, revenue: rev, target: tgt }];
+    revenueTargetChart.data.labels = [monthName];
+    revenueTargetChart.data.datasets[0].data = [achieved];
+    revenueTargetChart.data.datasets[1].data = [remaining];
+    revenueTargetChart.data.datasets[2].data = [exceeded];
+    revenueTargetChart.update();
+
+    const titleEl = document.getElementById('revenueChartTitle');
+    if (titleEl) {
+        titleEl.textContent = `📊 Revenue vs Target - ${monthName} ${monthlyPerformanceState.selectedYear}`;
+    }
+}
+
+function renderYearlyPerformanceCards(activeMonth = '{{ month }}') {
+    const host = document.getElementById('yearlyKpiGrid');
+    if (!host) return;
+
+    monthlyPerformanceState.selectedMonth = activeMonth;
+
+    host.innerHTML = KPI_MONTH_ORDER.map((monthName, index) => {
+        const monthData = getMonthKpi(monthName);
+        const achievedPercent = Number(monthData.achieved_percent || 0);
+        const salaryPercent = Number(monthData.salary_percent || 0);
+        const status = getMonthStatus(achievedPercent);
+        const salaryColor = salaryPercent > 30 ? '#dc2626' : (salaryPercent > 0 ? '#16a34a' : '#6b7280');
+        const statusBadge = achievedPercent > 0
+            ? `<span class="kpi-status-badge ${status}">${status === 'excellent' ? '✅ On Target' : (status === 'good' ? '⚠️ Close' : '❌ Behind')}</span>`
+            : '';
+
+        return `
+            <div class="kpi-card kpi-${status} ${monthName === activeMonth ? 'current-month' : ''}" data-month="${monthName}">
+                ${statusBadge}
+                <div class="kpi-month-label">
+                    <span>${monthName}</span>
+                    <span class="month-icon">${index + 1}</span>
+                </div>
+                <div class="kpi-row revenue-row">
+                    <span>💰 Revenue</span>
+                    <strong class="kpi-total-revenue">${formatINRCurrency(monthData.total_revenue)}</strong>
+                </div>
+                <div class="kpi-row target-row">
+                    <span>🎯 Target</span>
+                    <strong class="kpi-total-target">${formatINRCurrency(monthData.total_target)}</strong>
+                </div>
+                <div class="kpi-row achieved-row">
+                    <span>📊 Achievement</span>
+                    <strong class="kpi-achieved ${status}">${achievedPercent.toFixed(1)}%</strong>
+                </div>
+                <div class="kpi-row salary-row">
+                    <span>👥 Salary Output</span>
+                    <strong class="kpi-salary" style="color:${salaryColor};">${salaryPercent.toFixed(1)}%${salaryPercent > 30 ? ' ⚠️' : ''}</strong>
+                </div>
+                <div class="kpi-progress-bar">
+                    <div class="kpi-progress-fill ${status}" style="width:${Math.min(achievedPercent, 100)}%;"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    requestAnimationFrame(() => {
+        scrollKpiCardsToRecent(activeMonth);
+        updateKpiScrollFades();
+    });
+}
+
+function renderMonthlyPerformanceCard(monthName, options = {}) {
+    const { animate = true, updateChart = false } = options;
+    const host = document.getElementById('singleKpiCardHost');
+    const selector = document.getElementById('kpiMonthSelector');
+    const navMonthLabel = document.getElementById('kpiNavMonthLabel');
+    if (!host || !selector) return;
+
+    monthlyPerformanceState.selectedMonth = monthName;
+    saveSelectedKpiMonth(monthName);
+    selector.value = monthName;
+    if (navMonthLabel) navMonthLabel.textContent = monthName;
+
+    const monthData = getMonthKpi(monthName);
+    const achievedPercent = Number(monthData.achieved_percent || 0);
+    const salaryPercent = Number(monthData.salary_percent || 0);
+    const status = getMonthStatus(achievedPercent);
+    const salaryColor = salaryPercent > 30 ? '#dc2626' : (salaryPercent > 0 ? '#16a34a' : '#6b7280');
+    const statusBadge = achievedPercent > 0
+        ? `<span class="kpi-status-badge-inline ${status}">${status === 'excellent' ? 'On Target' : (status === 'good' ? 'Close' : 'Behind')}</span>`
+        : '<span class="kpi-status-badge-inline no-data">No Data</span>';
+
+    host.innerHTML = `
+        <div class="kpi-card kpi-${status} current-month" data-month="${monthName}">
+            <div class="kpi-card-header">
+                <div class="kpi-month-title-wrap">
+                    <div class="kpi-month-label">${monthName}</div>
+                    <button type="button" class="kpi-month-trigger" aria-label="Change month">📅</button>
+                </div>
+                ${statusBadge}
+            </div>
+            <div class="kpi-row revenue-row">
+                <span>💰 Revenue</span>
+                <strong class="kpi-total-revenue">${formatINRCurrency(monthData.total_revenue)}</strong>
+            </div>
+            <div class="kpi-row target-row">
+                <span>🎯 Target</span>
+                <strong class="kpi-total-target">${formatINRCurrency(monthData.total_target)}</strong>
+            </div>
+            <div class="kpi-row achieved-row">
+                <span>📊 Achievement</span>
+                <strong class="kpi-achieved ${status}">${achievedPercent.toFixed(1)}%</strong>
+            </div>
+            <div class="kpi-row salary-row">
+                <span>👥 Salary Output</span>
+                <strong class="kpi-salary" style="color:${salaryColor};">${salaryPercent.toFixed(1)}%${salaryPercent > 30 ? ' ⚠️' : ''}</strong>
+            </div>
+            <div class="kpi-progress-bar">
+                <div class="kpi-progress-fill ${status}" style="width:${Math.min(achievedPercent, 100)}%;"></div>
+            </div>
+        </div>
+    `;
+
+    const monthTrigger = host.querySelector('.kpi-month-trigger');
+    if (monthTrigger) {
+        monthTrigger.addEventListener('click', () => {
+            try {
+                if (typeof selector.showPicker === 'function') {
+                    selector.showPicker();
+                } else {
+                    selector.focus();
+                    selector.click();
+                }
+            } catch (e) {
+                selector.focus();
+                selector.click();
+            }
+        });
+    }
+
+    host.classList.remove('card-transition');
+    if (animate) {
+        void host.offsetWidth;
+        host.classList.add('card-transition');
+    }
+
+    if (updateChart) {
+        updateMonthlyChart(monthName);
+    }
+}
+
+function navigateDashboardToMonth(monthName) {
+    if (monthlyPerformanceState.isNavigating || monthlyPerformanceState.pendingNavigationUrl) {
+        return;
+    }
+
+    const currentUrl = new URL(window.location.href);
+    const currentMonth = currentUrl.searchParams.get('month') || '{{ month }}';
+    const currentYear = Number(currentUrl.searchParams.get('year') || '{{ year }}');
+
+    if (currentMonth === monthName && currentYear === monthlyPerformanceState.selectedYear) {
+        return;
+    }
+
+    const container = document.querySelector('.kpi-calendar-single');
+    const selector = document.getElementById('kpiMonthSelector');
+    const prevBtn = document.getElementById('kpiPrevMonthBtn');
+    const nextBtn = document.getElementById('kpiNextMonthBtn');
+    const loadingText = document.getElementById('kpiMonthLoadingText');
+    const targetLabel = `${monthName} ${monthlyPerformanceState.selectedYear}`;
+
+    monthlyPerformanceState.isNavigating = true;
+    if (container) {
+        container.classList.add('is-loading');
+        container.setAttribute('aria-busy', 'true');
+    }
+    if (selector) selector.disabled = true;
+    if (prevBtn) prevBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    if (loadingText) loadingText.textContent = `Loading ${targetLabel}...`;
+
+    prefetchNeighborMonths(monthName);
+    const nextUrl = buildDashboardMonthUrl(monthName);
+    monthlyPerformanceState.pendingNavigationUrl = nextUrl;
+
+    warmDashboardMonthRequest(monthName);
+
+    window.requestAnimationFrame(() => {
+        window.location.replace(nextUrl);
+    });
+}
+
+function handleKpiMonthSelection(monthName, options = {}) {
+    renderYearlyPerformanceCards(monthName);
+    navigateDashboardToMonth(monthName);
+}
+
+function initializeMonthlyPerformance() {
+    const serverMonth = '{{ month }}';
+    const currentMonthName = new Date().toLocaleString('default', { month: 'long' }).trim();
+    const savedMonth = loadSavedKpiMonth();
+    const defaultMonth = KPI_MONTH_ORDER.includes(serverMonth)
+        ? serverMonth
+        : (savedMonth || (KPI_MONTH_ORDER.includes(currentMonthName) ? currentMonthName : '{{ month }}'));
+
+    renderYearlyPerformanceCards(defaultMonth);
+
+    const yearlyGrid = document.getElementById('yearlyKpiGrid');
+    if (yearlyGrid && !yearlyGrid.dataset.bound) {
+        yearlyGrid.addEventListener('click', (event) => {
+            const card = event.target.closest('.kpi-card[data-month]');
+            if (!card) return;
+            const monthName = card.getAttribute('data-month');
+            if (!monthName) return;
+            handleKpiMonthSelection(monthName, { animate: true });
+        });
+        yearlyGrid.addEventListener('scroll', updateKpiScrollFades, { passive: true });
+        yearlyGrid.dataset.bound = 'true';
+    }
+
+    updateKpiScrollFades();
+}
+
+function highlightCurrentMonthCard() {
+    initializeMonthlyPerformance();
+}
+
+function exportDashboardToExcel() {
+    if (typeof XLSX === 'undefined') {
+        alert('Excel export library could not be loaded. Please refresh and try again.');
+        return;
+    }
+
+    const currentMonth = monthlyPerformanceState.selectedMonth || new URLSearchParams(window.location.search).get('month') || '{{ month }}';
+    const currentYear = new URLSearchParams(window.location.search).get('year') || '{{ year }}';
+
+    const currencyFmt = '"\u20b9"#,##0.00';
+    const percentFmt = '0.0"%"';
+
+    // Center data from currently visible table rows.
+    const centerRows = [[
+        'Center Name',
+        'Target',
+        'Revenue',
+        'Target Achievement %',
+        'Salary %',
+        'Incentive Amount',
+    ]];
+
+    const tableRows = Array.from(document.querySelectorAll('#dashboardForm table tr')).filter((row) => row.querySelector('input[name^="name"]'));
+    tableRows.forEach((row) => {
+        const centerName = row.querySelector('input[name^="name"]')?.value?.trim() || '';
+        const revenue = Number(row.querySelector('input[name^="revenue"]')?.value || 0);
+        const target = Number(row.querySelector('input[name^="target"]')?.value || 0);
+        const achievement = parsePercentValue(row.querySelector('[id^="achievement_"]')?.textContent || '0');
+        const salaryPercent = parsePercentValue(row.querySelector('[id^="salary_percent_"]')?.textContent || '0');
+
+        // Incentive may not be present on dashboard; include if visible, otherwise 0.
+        const incentiveCell = row.querySelector('[id^="incentive_"]');
+        const incentiveAmount = incentiveCell ? parseCurrencyValue(incentiveCell.textContent) : 0;
+
+        centerRows.push([
+            centerName,
+            target,
+            revenue,
+            achievement,
+            salaryPercent,
+            incentiveAmount,
+        ]);
+    });
+
+    // Visible KPI metrics from dashboard cards/header.
+    const kpiRows = [['Metric', 'Value']];
+    kpiRows.push(['Selected Month', currentMonth]);
+    kpiRows.push(['Selected Year', Number(currentYear)]);
+    kpiRows.push(['Active Coaches', Number(document.getElementById('activeCoachCount')?.textContent || 0)]);
+
+    const selectedMonthData = getMonthKpi(currentMonth);
+    kpiRows.push(['Current Month Revenue', Number(selectedMonthData.total_revenue || 0)]);
+    kpiRows.push(['Current Month Target', Number(selectedMonthData.total_target || 0)]);
+    kpiRows.push(['Current Month Achievement %', Number(selectedMonthData.achieved_percent || 0)]);
+    kpiRows.push(['Current Month Salary %', Number(selectedMonthData.salary_percent || 0)]);
+
+    // Monthly KPI summary from month data source.
+    const monthlyRows = [[
+        'Month',
+        'Revenue',
+        'Target',
+        'Achievement %',
+        'Salary %',
+    ]];
+
+    KPI_MONTH_ORDER.forEach((monthName) => {
+        const monthData = getMonthKpi(monthName);
+        monthlyRows.push([
+            monthName,
+            Number(monthData.total_revenue || 0),
+            Number(monthData.total_target || 0),
+            Number(monthData.achieved_percent || 0),
+            Number(monthData.salary_percent || 0)
+        ]);
+    });
+
+    const wb = XLSX.utils.book_new();
+
+    const centerSheet = XLSX.utils.aoa_to_sheet(centerRows);
+    centerSheet['!cols'] = [{ wch: 24 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 12 }, { wch: 18 }];
+    for (let r = 1; r < centerRows.length; r++) {
+        [1, 2, 5].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (centerSheet[ref]) centerSheet[ref].z = currencyFmt;
+        });
+        [3, 4].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (centerSheet[ref]) centerSheet[ref].z = percentFmt;
+        });
+    }
+    XLSX.utils.book_append_sheet(wb, centerSheet, 'Center Data');
+
+    const kpiSheet = XLSX.utils.aoa_to_sheet(kpiRows);
+    kpiSheet['!cols'] = [{ wch: 28 }, { wch: 20 }];
+    for (let r = 1; r < kpiRows.length; r++) {
+        const metricName = String(kpiRows[r][0] || '');
+        const valueRef = XLSX.utils.encode_cell({ r, c: 1 });
+        if (!kpiSheet[valueRef]) continue;
+        if (/Revenue|Target/i.test(metricName)) kpiSheet[valueRef].z = currencyFmt;
+        if (/\%/.test(metricName)) kpiSheet[valueRef].z = percentFmt;
+    }
+    XLSX.utils.book_append_sheet(wb, kpiSheet, 'KPI Metrics');
+
+    const monthlySheet = XLSX.utils.aoa_to_sheet(monthlyRows);
+    monthlySheet['!cols'] = [{ wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 12 }];
+    for (let r = 1; r < monthlyRows.length; r++) {
+        [1, 2].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (monthlySheet[ref]) monthlySheet[ref].z = currencyFmt;
+        });
+        [3, 4].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (monthlySheet[ref]) monthlySheet[ref].z = percentFmt;
+        });
+    }
+    XLSX.utils.book_append_sheet(wb, monthlySheet, 'Monthly KPIs');
+
+    const cleanToken = (token) => String(token || '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const fileName = `Dashboard_Report_${cleanToken(currentMonth)}_${cleanToken(currentYear)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+}
 
 // ================= COACH MODAL =================
 const coachModal = document.getElementById('coachModal');
@@ -2339,13 +3449,13 @@ function loadPreferences() {
     
     // Apply theme
     const isDark = (prefs.theme !== 'light');
-    document.body.classList.toggle('dark-theme', isDark);
-    document.body.classList.toggle('light-theme', !isDark);
+    document.body.classList.remove('dark-theme', 'light-theme');
+    document.body.classList.add(isDark ? 'dark-theme' : 'light-theme');
     updateThemeToggle(isDark);
     
     // Apply layout mode
     const layoutMode = prefs['layout-mode'] || 'layout-normal';
-    document.body.className = document.body.className.replace(/layout-\w+/, '');
+    document.body.classList.remove('layout-normal', 'layout-compact', 'layout-expanded');
     document.body.classList.add(layoutMode);
     document.getElementById('layoutSelect').value = layoutMode;
     
@@ -2385,7 +3495,6 @@ function toggleSetting(element, key) {
     if (key === 'dark-theme') {
         const isDark = element.classList.contains('active');
         document.body.classList.toggle('dark-theme', isDark);
-        document.body.classList.toggle('light-theme', !isDark);
         // Save theme preference
         let prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
         prefs.theme = isDark ? 'dark' : 'light';
@@ -2400,7 +3509,7 @@ function toggleSetting(element, key) {
 
 function changeLayout(layoutMode) {
     // Remove all layout classes
-    document.body.className = document.body.className.replace(/layout-\w+/, '');
+    document.body.classList.remove('layout-normal', 'layout-compact', 'layout-expanded');
     // Add new layout class
     document.body.classList.add(layoutMode);
 }
@@ -2468,7 +3577,17 @@ function checkSalaryUpdate() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadPreferences();
+    highlightCurrentMonthCard();
     localStorage.setItem('dashboard_loaded', Date.now().toString());
+    const pageContainer = document.querySelector('.container');
+    const dashboardEmailBar = document.querySelector('.email-report-bar');
+    if (pageContainer && dashboardEmailBar && pageContainer.lastElementChild !== dashboardEmailBar) {
+        pageContainer.appendChild(dashboardEmailBar);
+    }
+    const sendBtn = document.getElementById('sendDashboardEmailBtn');
+    if (sendBtn) {
+        sendBtn.addEventListener('click', sendDashboardEmailReport);
+    }
     
     // Check for salary updates when page becomes visible (e.g., switching tabs)
     document.addEventListener('visibilitychange', function() {
@@ -2476,11 +3595,20 @@ document.addEventListener('DOMContentLoaded', function() {
             checkSalaryUpdate();
         }
     });
+
+    // Enable transitions only after first paint with initialized widgets.
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            document.documentElement.classList.add('dashboard-ready');
+        });
+    });
 });
 </script>
 
 
 
+</div><!-- /.sb-content -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>
 

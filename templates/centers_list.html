@@ -9,60 +9,77 @@
         body {
             margin: 0;
             font-family: 'Segoe UI', Arial, sans-serif;
-            background: #f4f6fa;
+            background: #181f2a;
         }
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 210px;
-            height: 100vh;
-            background: #eceef0;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.04);
-            padding: 24px 0 0 0;
-            z-index: 10;
-        }
-        .sidebar-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .sidebar-title {
-            font-size: 2em;
-            font-weight: bold;
-        }
-        .sidebar-nav {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            padding-left: 0;
-            align-items: center;
-        }
-        .sidebar-link {
-            color: #3a3a3a;
-            text-decoration: none;
-            font-size: 1.08em;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 18px;
-            border-radius: 6px;
-            transition: background 0.2s, color 0.2s;
-        }
-        .sidebar-link:hover {
-            background: #e3e8f0;
-            color: #0078d7;
+        .sb-content {
+            padding: 32px 24px 32px 24px;
         }
         .container {
-            margin-left: 230px;
-            padding: 40px 32px;
-            max-width: 900px;
+            margin: 0 auto;
+            max-width: 1100px;
+            background: none;
         }
-        h2 {
-            margin-top: 0;
-            font-size: 2em;
+        .centers-header-row {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-end;
+            margin-bottom: 22px;
+            margin-top: 2px;
+        }
+        .centers-title {
+            margin: 0;
+            font-size: 2.1em;
+            font-weight: 700;
+            color: #e2e8f0;
+            letter-spacing: -1px;
+        }
+
+        .table-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+        .toolbar-left,
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .toolbar-label {
+            font-size: 13px;
             font-weight: 600;
-            color: #222;
+            color: #4b5563;
+        }
+        .toolbar-input,
+        .toolbar-select {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 14px;
+            background: #ffffff;
+            color: #111827;
+        }
+        .toolbar-input {
+            min-width: 240px;
+        }
+        .toolbar-input:focus,
+        .toolbar-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+        }
+        .count-badge {
+            background: #e0e7ff;
+            color: #3730a3;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
         }
         table {
             width: 100%;
@@ -83,6 +100,9 @@
             font-weight: 600;
             color: #374151;
         }
+        tbody tr:hover {
+            background: #f8fafc;
+        }
         tr:last-child td {
             border-bottom: none;
         }
@@ -90,6 +110,43 @@
             text-align: center;
             color: #6b7280;
             padding: 32px 0;
+        }
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .pagination-info {
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .pagination-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .page-btn {
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            color: #111827;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .page-btn:hover:not(:disabled) {
+            background: #eff6ff;
+            border-color: #93c5fd;
+        }
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .btn-danger {
             background: #e53935;
@@ -140,76 +197,80 @@
                 margin-right: 4px;
             }
     </style>
+    <link rel="stylesheet" href="/static/unified-theme.css">
+    <link rel="stylesheet" href="/static/sidebar.css">
 </head>
 <body>
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <span class="sidebar-title">🏸 Academy</span>
-        </div>
-        <nav class="sidebar-nav">
-            <a href="/dashboard" class="sidebar-link"><span class="sidebar-icon">📊</span>Dashboard</a>
-            <a href="/coaches" class="sidebar-link"><span class="sidebar-icon">🏋️</span>Coaches</a>
-            <a href="/analytics" class="sidebar-link"><span class="sidebar-icon">📈</span>Analytics</a>
-            <a href="/leaves" class="sidebar-link"><span class="sidebar-icon">🗓️</span>Leaves</a>
-            <a href="/settings" class="sidebar-link"><span class="sidebar-icon">⚙️</span>Settings</a>
-            <a href="/tasks" class="sidebar-link"><span class="sidebar-icon">✅</span>Tasks</a>
-            <a href="/centers" class="sidebar-link"><span class="sidebar-icon">🏢</span>All Centers</a>
-            <button id="themeToggle" class="sidebar-link" style="margin-top:18px;display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:none;font:inherit;outline:none;">
-                <span class="sidebar-icon">🌙</span><span class="sidebar-text">Night Mode</span>
-            </button>
-        </nav>
-    </div>
-<script>
-// Theme toggle logic
-document.addEventListener('DOMContentLoaded', function() {
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-            const isDark = document.body.classList.contains('dark-theme');
-            document.body.classList.toggle('dark-theme', !isDark);
-            document.body.classList.toggle('light-theme', isDark);
-            // Save preference
-            localStorage.setItem('dashboardPreferences', JSON.stringify({theme: isDark ? 'light' : 'dark'}));
-        });
-    }
-    // On load, set theme from localStorage
-    try {
-        const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
-        if (prefs.theme === 'light') {
-            document.body.classList.add('light-theme');
-            document.body.classList.remove('dark-theme');
-        } else {
-            document.body.classList.add('dark-theme');
-            document.body.classList.remove('light-theme');
-        }
-    } catch(e) {}
-});
-</script>
+{% include '_sidebar.html' %}
+
+<div class="sb-content">
     <div class="container">
-        <h2>All Centers</h2>
+        <div class="centers-header-row">
+            <h2 class="centers-title">All Centers</h2>
+        </div>
+        <div class="table-toolbar">
+            <div class="toolbar-left">
+                <input
+                    id="centerSearchInput"
+                    class="toolbar-input"
+                    type="text"
+                    placeholder="Search center name"
+                    autocomplete="off">
+                <label class="toolbar-label" for="centerSortSelect">Sort</label>
+                <select id="centerSortSelect" class="toolbar-select">
+                    <option value="id_asc">ID: Low to High</option>
+                    <option value="id_desc">ID: High to Low</option>
+                    <option value="name_asc">Name: A to Z</option>
+                    <option value="name_desc">Name: Z to A</option>
+                </select>
+            </div>
+            <div class="toolbar-right">
+                <label class="toolbar-label" for="rowsPerPageSelect">Rows</label>
+                <select id="rowsPerPageSelect" class="toolbar-select">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="all">All</option>
+                </select>
+                <span id="centersCountBadge" class="count-badge">Total: 0</span>
+            </div>
+        </div>
         <table>
-            <tr><th>ID</th><th>Name</th><th>Action</th></tr>
-            {% if centers|length == 0 %}
-            <tr><td colspan="3" class="empty">No centers found.</td></tr>
-            {% else %}
-            {% for center in centers %}
-                <tr>
-                    <td>{{ center[0] }}</td>
-                    <td><span class="center-name">{{ center[1] }}</span></td>
-                    <td>
-                        <form method="POST" action="/centers/edit/{{ center[0] }}" class="action-form" style="display:inline;">
-                            <input type="text" name="new_name" value="{{ center[1] }}" class="edit-input" style="width:120px; display:none; margin-right:6px;" />
-                            <button type="button" class="btn-edit" onclick="toggleEdit(this)">Edit</button>
-                            <button type="submit" class="btn-save" style="display:none; background:#0078d7; color:#fff; margin-left:4px;">Save</button>
-                        </form>
-                        <form method="POST" action="/centers/delete/{{ center[0] }}" style="display:inline; margin-left:6px;">
-                            <button type="submit" onclick="return confirm('Delete this center? This will remove all related data.')" class="btn-danger">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-            {% endfor %}
-            {% endif %}
+            <thead>
+                <tr><th>ID</th><th>Name</th><th>Action</th></tr>
+            </thead>
+            <tbody id="centersTableBody">
+                {% if centers|length == 0 %}
+                <tr id="emptyRow"><td colspan="3" class="empty">No centers found.</td></tr>
+                {% else %}
+                {% for center in centers %}
+                    <tr class="center-row" data-id="{{ center[0] }}" data-name="{{ center[1]|lower }}">
+                        <td>{{ center[0] }}</td>
+                        <td><span class="center-name">{{ center[1] }}</span></td>
+                        <td>
+                            <form method="POST" action="/centers/edit/{{ center[0] }}" class="action-form" style="display:inline;">
+                                <input type="text" name="new_name" value="{{ center[1] }}" class="edit-input" style="width:120px; display:none; margin-right:6px;" />
+                                <button type="button" class="btn-edit" onclick="toggleEdit(this)">Edit</button>
+                                <button type="submit" class="btn-save" style="display:none; background:#0078d7; color:#fff; margin-left:4px;">Save</button>
+                            </form>
+                            <form method="POST" action="/centers/delete/{{ center[0] }}" style="display:inline; margin-left:6px;">
+                                <button type="submit" onclick="return confirm('Delete this center? This will remove all related data.')" class="btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% endif %}
+                <tr id="noResultsRow" style="display:none;"><td colspan="3" class="empty">No centers match your search.</td></tr>
+            </tbody>
         </table>
+        <div class="pagination">
+            <div id="paginationInfo" class="pagination-info">Showing 0 to 0 of 0</div>
+            <div class="pagination-actions">
+                <button id="prevPageBtn" type="button" class="page-btn">Previous</button>
+                <span id="pageNumberLabel" class="pagination-info">Page 1</span>
+                <button id="nextPageBtn" type="button" class="page-btn">Next</button>
+            </div>
+        </div>
         <script>
             function toggleEdit(btn) {
                     const form = btn.closest('form');
@@ -228,8 +289,161 @@ document.addEventListener('DOMContentLoaded', function() {
                         nameSpan.style.display = 'inline-block';
                     }
             }
+
+            let currentPage = 1;
+
+            function getRowsPerPage() {
+                const select = document.getElementById('rowsPerPageSelect');
+                if (!select || select.value === 'all') {
+                    return Number.MAX_SAFE_INTEGER;
+                }
+                const value = Number(select.value);
+                return Number.isFinite(value) && value > 0 ? value : 25;
+            }
+
+            function applyFiltersAndRender() {
+                const tbody = document.getElementById('centersTableBody');
+                if (!tbody) return;
+
+                const searchInput = document.getElementById('centerSearchInput');
+                const sortSelect = document.getElementById('centerSortSelect');
+                const countBadge = document.getElementById('centersCountBadge');
+                const info = document.getElementById('paginationInfo');
+                const pageLabel = document.getElementById('pageNumberLabel');
+                const prevBtn = document.getElementById('prevPageBtn');
+                const nextBtn = document.getElementById('nextPageBtn');
+                const noResultsRow = document.getElementById('noResultsRow');
+                const emptyRow = document.getElementById('emptyRow');
+
+                const allRows = Array.from(tbody.querySelectorAll('tr.center-row'));
+                const totalCount = allRows.length;
+                if (countBadge) {
+                    countBadge.textContent = `Total: ${totalCount}`;
+                }
+
+                if (totalCount === 0) {
+                    if (info) info.textContent = 'Showing 0 to 0 of 0';
+                    if (pageLabel) pageLabel.textContent = 'Page 1';
+                    if (prevBtn) prevBtn.disabled = true;
+                    if (nextBtn) nextBtn.disabled = true;
+                    return;
+                }
+
+                const sortBy = sortSelect ? sortSelect.value : 'id_asc';
+                const sortedRows = [...allRows].sort((a, b) => {
+                    const idA = Number(a.dataset.id || 0);
+                    const idB = Number(b.dataset.id || 0);
+                    const nameA = (a.dataset.name || '').toLowerCase();
+                    const nameB = (b.dataset.name || '').toLowerCase();
+
+                    if (sortBy === 'id_desc') return idB - idA;
+                    if (sortBy === 'name_asc') return nameA.localeCompare(nameB);
+                    if (sortBy === 'name_desc') return nameB.localeCompare(nameA);
+                    return idA - idB;
+                });
+
+                const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+                const filtered = sortedRows.filter((row) => {
+                    const name = (row.dataset.name || '').toLowerCase();
+                    return name.includes(query);
+                });
+
+                allRows.forEach((row) => {
+                    row.style.display = 'none';
+                });
+
+                const rowsPerPage = getRowsPerPage();
+                const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+                if (currentPage > totalPages) currentPage = totalPages;
+
+                const startIndex = (currentPage - 1) * rowsPerPage;
+                const endIndex = Math.min(startIndex + rowsPerPage, filtered.length);
+                const visibleRows = filtered.slice(startIndex, endIndex);
+
+                // Move rows in DOM so sorted order is reflected visually.
+                const anchorRow = noResultsRow || null;
+                visibleRows.forEach((row) => {
+                    tbody.insertBefore(row, anchorRow);
+                });
+
+                visibleRows.forEach((row) => {
+                    row.style.display = '';
+                });
+
+                if (noResultsRow) {
+                    noResultsRow.style.display = filtered.length === 0 ? '' : 'none';
+                }
+                if (emptyRow) {
+                    emptyRow.style.display = totalCount === 0 ? '' : 'none';
+                }
+
+                if (info) {
+                    if (filtered.length === 0) {
+                        info.textContent = 'Showing 0 to 0 of 0';
+                    } else {
+                        info.textContent = `Showing ${startIndex + 1} to ${endIndex} of ${filtered.length}`;
+                    }
+                }
+                if (pageLabel) {
+                    pageLabel.textContent = `Page ${Math.min(currentPage, totalPages)} of ${totalPages}`;
+                }
+                if (prevBtn) {
+                    prevBtn.disabled = currentPage <= 1 || filtered.length === 0;
+                }
+                if (nextBtn) {
+                    nextBtn.disabled = currentPage >= totalPages || filtered.length === 0;
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const searchInput = document.getElementById('centerSearchInput');
+                const sortSelect = document.getElementById('centerSortSelect');
+                const rowsPerPageSelect = document.getElementById('rowsPerPageSelect');
+                const prevBtn = document.getElementById('prevPageBtn');
+                const nextBtn = document.getElementById('nextPageBtn');
+
+                if (searchInput) {
+                    searchInput.addEventListener('input', () => {
+                        currentPage = 1;
+                        applyFiltersAndRender();
+                    });
+                }
+
+                if (sortSelect) {
+                    sortSelect.addEventListener('change', () => {
+                        currentPage = 1;
+                        applyFiltersAndRender();
+                    });
+                }
+
+                if (rowsPerPageSelect) {
+                    rowsPerPageSelect.addEventListener('change', () => {
+                        currentPage = 1;
+                        applyFiltersAndRender();
+                    });
+                }
+
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', () => {
+                        currentPage = Math.max(1, currentPage - 1);
+                        applyFiltersAndRender();
+                    });
+                }
+
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', () => {
+                        currentPage += 1;
+                        applyFiltersAndRender();
+                    });
+                }
+
+                applyFiltersAndRender();
+            });
+
         // Auto-refresh disabled to prevent overwriting edits
         </script>
     </div>
+</div><!-- /.sb-content -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>

@@ -1,24 +1,34 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analytics - Academy Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { --bg:#070b14; --panel:#0f172a; --panel-soft:#111c33; --border:#24324f; --text:#e5e7eb; --muted:#9ca3af; }
         * { box-sizing: border-box; }
         body { margin:0; font-family:Inter, Segoe UI, Arial, sans-serif; background:radial-gradient(circle at 10% -20%, #1e293b 0%, var(--bg) 52%); color:var(--text); }
-        .layout { display:grid; grid-template-columns:220px 1fr; min-height:100vh; }
-        .sidebar { position:sticky; top:0; height:100vh; background:#0b1222; border-right:1px solid #1f2a44; padding:18px 12px; }
-        .brand { font-size:18px; font-weight:800; margin:8px 8px 16px; color:#dbeafe; }
-        .nav-link { display:flex; gap:10px; align-items:center; color:#d1d5db; text-decoration:none; border-radius:10px; padding:10px 12px; margin:4px 0; }
+        .layout { display:grid; grid-template-columns:220px 1fr; min-height:100vh; transition:grid-template-columns 0.2s; }
+        .layout.sidebar-collapsed { grid-template-columns:60px 1fr; }
+        .sidebar { position:sticky; top:0; height:100vh; background:#0b1222; border-right:1px solid #1f2a44; padding:18px 12px; display:flex; flex-direction:column; transition:width 0.2s; }
+        .sidebar-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        .sidebar-toggle { background:0; border:0; color:#dbeafe; cursor:pointer; font-size:20px; padding:8px; }
+        .brand { font-size:18px; font-weight:800; margin:0; color:#dbeafe; }
+        .layout.sidebar-collapsed .brand { display:none; }
+        .layout.sidebar-collapsed .sidebar-text { display:none; }
+        .nav-link { display:flex; gap:10px; align-items:center; color:#d1d5db; text-decoration:none; border-radius:10px; padding:10px 12px; margin:4px 0; white-space:nowrap; }
         .nav-link:hover, .nav-link.active { background:#1d4ed8; color:#fff; }
+        .layout.sidebar-collapsed .nav-link { justify-content:center; padding:10px 0; }
+        .layout.sidebar-collapsed .nav-link span { display:none; }
         .main { padding:24px; }
         .topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px; }
         .title { margin:0; font-size:28px; }
         .subtitle { margin:6px 0 0; color:var(--muted); font-size:13px; }
         .year-select { background:#0b1222; color:#dbeafe; border:1px solid var(--border); border-radius:10px; padding:10px 14px; font-weight:700; }
+        .export-btn { background:rgba(34,197,94,0.14); color:#bbf7d0; border:1px solid rgba(34,197,94,0.45); border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; transition:background-color .2s, transform .2s; }
+        .export-btn:hover { background:rgba(34,197,94,0.24); transform:translateY(-1px); }
         .cards { display:grid; grid-template-columns:repeat(5, minmax(150px, 1fr)); gap:12px; margin-bottom:18px; }
         .card, .panel { background:linear-gradient(145deg, var(--panel) 0%, var(--panel-soft) 100%); border:1px solid var(--border); border-radius:14px; padding:14px; }
         .card h3 { margin:0; color:#bfdbfe; font-size:13px; }
@@ -41,23 +51,26 @@
     </style>
 </head>
 <body>
-<div class="layout">
-    <aside class="sidebar">
-        <div class="brand">🏸 Hrishikesh</div>
-        <a href="/dashboard" class="nav-link">📊 Dashboard</a>
-        <a href="/analytics" class="nav-link active">📈 Analytics</a>
-        <a href="/coaches" class="nav-link">🏋️ Coaches</a>
-        <a href="/leaves" class="nav-link">🗓 Leaves</a>
-        <a href="/tasks" class="nav-link">✅ Tasks</a>
-        <a href="/centers" class="nav-link">🏢 All Centers</a>
-        <a href="/backups" class="nav-link">🗄 Backups</a>
-        <a href="/settings" class="nav-link">⚙ Settings</a>
-        <a href="/logout" class="nav-link">🚪 Logout</a>
+<div class="layout" id="analyticsLayout">
+    <aside class="sidebar" id="analyticsSidebar">
+        <div class="sidebar-header">
+            <div class="brand">&#x1F3F8; Hrishikesh</div>
+            <button class="sidebar-toggle" id="sidebarToggle" title="Toggle sidebar">&#9776;</button>
+        </div>
+        <a href="/dashboard" class="nav-link">&#x1F4CA; <span class="sidebar-text">Dashboard</span></a>
+        <a href="/coaches" class="nav-link">&#x1F3CB;&#xFE0F; <span class="sidebar-text">Coaches</span></a>
+        <a href="/analytics" class="nav-link active">&#x1F4C8; <span class="sidebar-text">Analytics</span></a>
+        <a href="/summer-camp-incentives" class="nav-link">&#x2600;&#xFE0F; <span class="sidebar-text">Summer Camp</span></a>
+        <a href="/leaves" class="nav-link">&#x1F5D3; <span class="sidebar-text">Leaves</span></a>
+        <a href="/tasks" class="nav-link">&#x2705; <span class="sidebar-text">Tasks</span></a>
+        <a href="/backups" class="nav-link">&#x1F5C4; <span class="sidebar-text">Backups</span></a>
+        <a href="/centers" class="nav-link">&#x1F3E2; <span class="sidebar-text">All Centers</span></a>
+        <a href="/settings" class="nav-link">&#x2699; <span class="sidebar-text">Settings</span></a>
     </aside>
     <main class="main">
         <div class="topbar">
             <div>
-                <h1 class="title">Executive Analytics</h1>
+                <h1 class="title">Data Analytics</h1>
                 <p class="subtitle">Revenue, target, achievement and salary efficiency analytics for {{ year }} ({{ from_month[:3] }} - {{ to_month[:3] }})</p>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
@@ -71,6 +84,7 @@
                 <select class="year-select" id="toMonth" onchange="updateFilters()" style="width:auto;">
                     {% for m in all_months %}<option value="{{ m }}" {% if m == to_month %}selected{% endif %}>{{ m[:3] }}</option>{% endfor %}
                 </select>
+                <button type="button" class="export-btn" onclick="exportAnalyticsToExcel()">Export to Excel</button>
             </div>
         </div>
         <script>
@@ -82,9 +96,31 @@
         }
         </script>
 
+        <script>
+        // Sidebar toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const layout = document.getElementById('analyticsLayout');
+            const sidebar = document.getElementById('analyticsSidebar');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            
+            // Load preference from localStorage
+            const isCollapsed = localStorage.getItem('analyticsSidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                layout.classList.add('sidebar-collapsed');
+            }
+            
+            // Toggle on button click
+            toggleBtn.addEventListener('click', function() {
+                layout.classList.toggle('sidebar-collapsed');
+                const collapsed = layout.classList.contains('sidebar-collapsed');
+                localStorage.setItem('analyticsSidebarCollapsed', collapsed);
+            });
+        });
+        </script>
+
         <section class="cards">
-            <div class="card"><h3>Total Revenue</h3><div class="value">₹{{ '{:,.0f}'.format(summary.total_revenue) }}</div></div>
-            <div class="card"><h3>Total Target</h3><div class="value">₹{{ '{:,.0f}'.format(summary.total_target) }}</div></div>
+            <div class="card"><h3>Total Revenue</h3><div class="value">&#8377;{{ '{:,.0f}'.format(summary.total_revenue) }}</div></div>
+            <div class="card"><h3>Total Target</h3><div class="value">&#8377;{{ '{:,.0f}'.format(summary.total_target) }}</div></div>
             <div class="card"><h3>Achievement %</h3><div class="value">{{ summary.achievement_pct }}%</div></div>
             <div class="card"><h3>Average Salary %</h3><div class="value">{{ summary.avg_salary_pct }}%</div></div>
             <div class="card"><h3>Best Center</h3><div class="value" style="font-size:18px;">{{ summary.best_center }}</div></div>
@@ -114,7 +150,114 @@ const distributionBins = {{ distribution_bins|tojson|safe }};
 const monthlyGrowth = {{ monthly_growth|tojson|safe }};
 const commonLegend = { labels: { color: '#cbd5e1', font: { weight: '600' } } };
 const commonGrid = { color: 'rgba(148,163,184,0.18)' };
-new Chart(document.getElementById('monthlyTrendChart'), { type:'line', data:{ labels:months.map(m=>m.slice(0,3)), datasets:[{label:'Revenue',data:monthlyRevenue,borderColor:'#38bdf8',backgroundColor:'rgba(56,189,248,0.2)',fill:true,tension:0.35,borderWidth:2},{label:'Target',data:monthlyTarget,borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,0.14)',fill:true,tension:0.35,borderWidth:2}]}, options:{ plugins:{legend:commonLegend}, scales:{ y:{grid:commonGrid,ticks:{color:'#94a3b8',callback:v=>'?'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})}}, x:{grid:commonGrid,ticks:{color:'#94a3b8'}} } } });
+function exportAnalyticsToExcel() {
+    if (typeof XLSX === 'undefined') {
+        alert('Excel export library could not be loaded. Please refresh and try again.');
+        return;
+    }
+
+    const year = document.getElementById('yearSelect').value;
+    const fromMonth = document.getElementById('fromMonth').value;
+    const toMonth = document.getElementById('toMonth').value;
+    const currencyFmt = '"\u20b9"#,##0.00';
+    const percentFmt = '0.0"%"';
+
+    const centerSheetRows = [['Center Name', 'Monthly Revenue', 'Target', 'Achievement %', 'Salary %', 'Incentive', 'Excess Revenue', 'Salary Amount']];
+    rankedCenters.forEach((center) => {
+        const revenue = Number(center.revenue || 0);
+        const target = Number(center.target || 0);
+        const achievement = Number(center.achievement || 0);
+        const salaryPercent = Number(center.salary_percent || 0);
+        const salaryAmount = Number(center.salary || 0);
+        const excessRevenue = Number(Math.max(0, revenue - target).toFixed(2));
+        const incentive = Number((excessRevenue * 0.1).toFixed(2));
+        centerSheetRows.push([center.name, revenue, target, achievement, salaryPercent, incentive, excessRevenue, salaryAmount]);
+    });
+
+    const monthlyTrendRows = [['Month', 'Revenue', 'Target', 'Achievement %', 'MoM Growth %']];
+    months.forEach((month, index) => {
+        const revenue = Number(monthlyRevenue[index] || 0);
+        const target = Number(monthlyTarget[index] || 0);
+        const achievement = target > 0 ? Number(((revenue / target) * 100).toFixed(1)) : 0;
+        const growth = monthlyGrowth[index] == null ? null : Number(monthlyGrowth[index]);
+        monthlyTrendRows.push([month, revenue, target, achievement, growth]);
+    });
+
+    const salaryRows = [['Center Name', ...months.map((month) => `${month} Salary %`)]];
+    salaryMonitoringSeries.forEach((series) => {
+        salaryRows.push([series.center, ...series.values.map((value) => Number(value || 0))]);
+    });
+
+    const heatmapRowsData = [['Center Name', ...months.map((month) => `${month} Achievement %`)]];
+    heatmapRows.forEach((row) => {
+        heatmapRowsData.push([row.center, ...row.values.map((value) => Number(value || 0))]);
+    });
+
+    const distributionRows = [['Achievement Bucket', 'Centers Count']];
+    Object.entries(distributionBins).forEach(([bucket, count]) => {
+        distributionRows.push([bucket, Number(count || 0)]);
+    });
+
+    const wb = XLSX.utils.book_new();
+
+    const centerSheet = XLSX.utils.aoa_to_sheet(centerSheetRows);
+    centerSheet['!cols'] = [{ wch: 24 }, { wch: 18 }, { wch: 16 }, { wch: 15 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 14 }];
+    for (let r = 1; r < centerSheetRows.length; r++) {
+        [1, 2, 5, 6, 7].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (centerSheet[ref]) centerSheet[ref].z = currencyFmt;
+        });
+        [3, 4].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (centerSheet[ref]) centerSheet[ref].z = percentFmt;
+        });
+    }
+    XLSX.utils.book_append_sheet(wb, centerSheet, 'Center Analytics');
+
+    const monthlyTrendSheet = XLSX.utils.aoa_to_sheet(monthlyTrendRows);
+    monthlyTrendSheet['!cols'] = [{ wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }];
+    for (let r = 1; r < monthlyTrendRows.length; r++) {
+        [1, 2].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (monthlyTrendSheet[ref]) monthlyTrendSheet[ref].z = currencyFmt;
+        });
+        [3, 4].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (monthlyTrendSheet[ref]) monthlyTrendSheet[ref].z = percentFmt;
+        });
+    }
+    XLSX.utils.book_append_sheet(wb, monthlyTrendSheet, 'Monthly Trend');
+
+    const salarySheet = XLSX.utils.aoa_to_sheet(salaryRows);
+    salarySheet['!cols'] = [{ wch: 24 }, ...months.map(() => ({ wch: 12 }))];
+    for (let r = 1; r < salaryRows.length; r++) {
+        for (let c = 1; c <= months.length; c++) {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (salarySheet[ref]) salarySheet[ref].z = percentFmt;
+        }
+    }
+    XLSX.utils.book_append_sheet(wb, salarySheet, 'Salary Monitoring');
+
+    const heatmapSheet = XLSX.utils.aoa_to_sheet(heatmapRowsData);
+    heatmapSheet['!cols'] = [{ wch: 24 }, ...months.map(() => ({ wch: 15 }))];
+    for (let r = 1; r < heatmapRowsData.length; r++) {
+        for (let c = 1; c <= months.length; c++) {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (heatmapSheet[ref]) heatmapSheet[ref].z = percentFmt;
+        }
+    }
+    XLSX.utils.book_append_sheet(wb, heatmapSheet, 'Achievement Heatmap');
+
+    const distributionSheet = XLSX.utils.aoa_to_sheet(distributionRows);
+    distributionSheet['!cols'] = [{ wch: 20 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, distributionSheet, 'Distribution');
+
+    const cleanToken = (token) => String(token || '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const fileName = `Analytics_Report_${cleanToken(year)}_${cleanToken(fromMonth)}_to_${cleanToken(toMonth)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+}
+
+new Chart(document.getElementById('monthlyTrendChart'), { type:'line', data:{ labels:months.map(m=>m.slice(0,3)), datasets:[{label:'Revenue',data:monthlyRevenue,borderColor:'#38bdf8',backgroundColor:'rgba(56,189,248,0.2)',fill:true,tension:0.35,borderWidth:2},{label:'Target',data:monthlyTarget,borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,0.14)',fill:true,tension:0.35,borderWidth:2}]}, options:{ plugins:{legend:commonLegend}, scales:{ y:{grid:commonGrid,ticks:{color:'#94a3b8',callback:v=>'\u20B9'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})}}, x:{grid:commonGrid,ticks:{color:'#94a3b8'}} } } });
 new Chart(document.getElementById('centerRankChart'), { type:'bar', data:{ labels:rankedCenters.map(c=>c.name), datasets:[{label:'Achievement %',data:rankedCenters.map(c=>c.achievement),backgroundColor:rankedCenters.map(c=>c.achievement>=100?'#22c55e':(c.achievement>=80?'#f59e0b':'#ef4444')),borderRadius:8}]}, options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ y:{grid:commonGrid,ticks:{color:'#cbd5e1'}}, x:{grid:commonGrid,ticks:{color:'#cbd5e1',callback:v=>v+'%'}} } } });
 new Chart(document.getElementById('centerDistributionChart'), { type:'pie', data:{ labels:rankedCenters.map(c=>c.name), datasets:[{data:rankedCenters.map(c=>c.revenue),backgroundColor:['#38bdf8','#818cf8','#34d399','#f59e0b','#fb7185','#22d3ee','#a3e635','#f472b6']}]}, options:{ plugins:{legend:{position:'bottom',labels:{color:'#cbd5e1',boxWidth:12}}} } });
 new Chart(document.getElementById('achievementDistributionChart'), { type:'bar', data:{ labels:Object.keys(distributionBins), datasets:[{label:'Centers',data:Object.values(distributionBins),backgroundColor:['#dc2626','#f97316','#f59e0b','#22c55e','#16a34a'],borderRadius:8}]}, options:{ plugins:{legend:{display:false}}, scales:{ y:{grid:commonGrid,ticks:{color:'#cbd5e1',precision:0}}, x:{grid:commonGrid,ticks:{color:'#cbd5e1'}} } } });
@@ -133,3 +276,11 @@ heatmap.appendChild(tbody);
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+

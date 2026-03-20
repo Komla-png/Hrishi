@@ -1,0 +1,71 @@
+{#
+  _sidebar.html — Global sidebar component.
+  Include this template right after <body> in every page.
+  Active link is auto-detected via request.path.
+  Collapse/expand state and Night Mode are persisted in localStorage.
+#}
+
+{# Anti-flicker: apply sidebar-collapsed class before the page paints #}
+<script>
+(function () {
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+        document.documentElement.classList.add('sb-collapsed-init');
+    }
+    // Apply saved theme before first paint to prevent flash
+    try {
+        var prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
+        var theme = prefs.theme || 'dark';
+        document.body.classList.add(theme + '-theme');
+    } catch (e) {
+        document.body.classList.add('dark-theme');
+    }
+}());
+</script>
+
+<div id="globalSidebar" class="global-sidebar">
+    <div class="sidebar-header">
+        <span class="sidebar-title">🏸 Hrishikesh</span>
+        <button id="globalSidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+    </div>
+    <nav class="sidebar-nav">
+        <a href="/dashboard"
+           class="sidebar-link{% if request.path == '/dashboard' %} active{% endif %}">
+            <span class="sidebar-icon">📊</span><span class="sidebar-text">Dashboard</span>
+        </a>
+        <a href="/coaches"
+           class="sidebar-link{% if request.path.startswith('/coaches') %} active{% endif %}">
+            <span class="sidebar-icon">🏋️</span><span class="sidebar-text">Coaches</span>
+        </a>
+        <a href="/analytics"
+           class="sidebar-link{% if request.path == '/analytics' %} active{% endif %}">
+            <span class="sidebar-icon">📈</span><span class="sidebar-text">Analytics</span>
+        </a>
+        <a href="/summer-camp-incentives"
+           class="sidebar-link{% if request.path.startswith('/summer-camp') %} active{% endif %}">
+            <span class="sidebar-icon">☀️</span><span class="sidebar-text">Summer Camp</span>
+        </a>
+        <a href="/leaves"
+              class="sidebar-link{% if request.path.rstrip('/') == '/leaves' %} active{% endif %}">
+            <span class="sidebar-icon">🗓️</span><span class="sidebar-text">Leaves</span>
+        </a>
+        <a href="/tasks"
+           class="sidebar-link{% if request.path.startswith('/tasks') %} active{% endif %}">
+            <span class="sidebar-icon">✅</span><span class="sidebar-text">Tasks</span>
+        </a>
+        <a href="/backups"
+           class="sidebar-link{% if request.path.startswith('/backups') %} active{% endif %}">
+            <span class="sidebar-icon">🗄️</span><span class="sidebar-text">Backups</span>
+        </a>
+        <a href="/centers"
+           class="sidebar-link{% if request.path.startswith('/centers') %} active{% endif %}">
+            <span class="sidebar-icon">🏢</span><span class="sidebar-text">All Centers</span>
+        </a>
+        <a href="/settings"
+           class="sidebar-link{% if request.path.startswith('/settings') %} active{% endif %}">
+            <span class="sidebar-icon">⚙️</span><span class="sidebar-text">Settings</span>
+        </a>
+        <button id="nightModeToggle" class="sidebar-link night-mode-btn" type="button">
+            <span class="sidebar-icon">🌙</span><span class="sidebar-text">Night Mode</span>
+        </button>
+    </nav>
+</div>

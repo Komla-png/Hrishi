@@ -24,6 +24,14 @@ from blueprints import auth_bp, dashboard_bp, coaches_bp, analytics_bp, settings
 # ================= APP CONFIGURATION =================
 app = Flask(__name__)
 
+
+def env_flag(name, default=False):
+    """Parse a boolean environment flag."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
 # Secure secret key - from env or auto-generate
 SECRET_KEY_FILE = os.environ.get("SECRET_KEY_FILE", "instance/.secret_key")
 
@@ -48,7 +56,8 @@ def get_secret_key():
 app.secret_key = get_secret_key()
 
 # Check if running in production
-IS_PRODUCTION = os.environ.get('RENDER') or os.environ.get('PRODUCTION')
+IS_RENDER = bool(os.environ.get('RENDER'))
+IS_PRODUCTION = IS_RENDER or env_flag('PRODUCTION')
 
 # Secure session configuration
 app.config.update(
@@ -134,9 +143,42 @@ def init_db():
         )
     """)
 
+    # Summer camp incentive tracking
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS summer_camp_incentives(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            center_name TEXT NOT NULL,
+            month TEXT NOT NULL,
+            year INTEGER DEFAULT 2026,
+            revenue REAL DEFAULT 0,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # Add unique constraint to monthly_data
     cur.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS idx_monthly_data_unique ON monthly_data(center_id, month, year)
+    """)
+
+    cur.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_summer_camp_incentives_unique
+        ON summer_camp_incentives(center_name, month, year)
+    """)
+
+    # Summer camp center visibility config (do not delete master centers)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS summer_camp_centers_config(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            center_id INTEGER NOT NULL,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(center_id) REFERENCES centers(id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_summer_camp_centers_config_center
+        ON summer_camp_centers_config(center_id)
     """)
 
     # Coaches (master list) with end_month and end_year
@@ -259,6 +301,7 @@ def init_db():
     
     # Remove any duplicates that might exist from previous migrations
     _clean_duplicates(cur)
+    _normalize_leave_data(cur)
     
     conn.commit()
     conn.close()
@@ -300,6 +343,46 @@ def _clean_duplicates(cur):
         print(f"⚠️ Duplicate cleanup warning: {e}")
 
 
+def _normalize_leave_data(cur):
+    """Canonicalize legacy leave values so reporting and admin screens stay consistent."""
+    try:
+        cur.execute(
+            """
+            UPDATE coach_leaves
+            SET leave_type = 'Week Off'
+            WHERE lower(replace(replace(coalesce(leave_type, ''), ' ', ''), '_', '')) IN ('weekoff', 'weekend')
+              AND leave_type <> 'Week Off'
+            """
+        )
+        normalized_weekoff = cur.rowcount
+
+        cur.execute(
+            """
+            UPDATE coach_leaves
+            SET leave_type = 'LOP'
+            WHERE lower(replace(replace(coalesce(leave_type, ''), ' ', ''), '_', '')) IN ('lop', 'lossofpay', 'unpaid')
+              AND leave_type <> 'LOP'
+            """
+        )
+        normalized_lop = cur.rowcount
+
+        cur.execute(
+            """
+            UPDATE coach_leaves
+            SET leave_duration = 'full_day'
+            WHERE leave_duration IS NULL OR trim(leave_duration) = ''
+            """
+        )
+        normalized_duration = cur.rowcount
+
+        if normalized_weekoff > 0 or normalized_lop > 0 or normalized_duration > 0:
+            print(
+                f"🛠️ Normalized leave data: week_off_aliases({normalized_weekoff}), lop_aliases({normalized_lop}), durations({normalized_duration})"
+            )
+    except Exception as e:
+        print(f"⚠️ Leave normalization warning: {e}")
+
+
 def _bootstrap_admin_user(cur):
     """Optionally create/update an admin account from environment variables."""
     admin_username = (os.environ.get("ADMIN_USERNAME") or "").strip()
@@ -334,5 +417,5 @@ if __name__ == "__main__":
     # In production, use gunicorn (wsgi.py) instead
     # This runs only for local development
     port = int(os.environ.get('PORT', 5000))
-    debug = not IS_PRODUCTION
+    debug = env_flag('FLASK_DEBUG', default=not IS_RENDER)
     app.run(host='0.0.0.0', port=port, debug=debug)

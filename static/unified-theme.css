@@ -1,0 +1,136 @@
+:root {
+	--bg: #070b14;
+	--bg-accent: #1e293b;
+	--panel: #0f172a;
+	--panel-soft: #111c33;
+	--border: #24324f;
+	--text: #e5e7eb;
+	--muted: #cbd5e1;
+	--heading: #dbeafe;
+	--brand: #1d4ed8;
+	--surface: #0b1222;
+	--surface-soft: #172133;
+	--sidebar-border: #1f2a44;
+}
+
+body,
+body.dark-theme {
+	background: radial-gradient(circle at 10% -20%, var(--bg-accent) 0%, var(--bg) 52%) !important;
+	color: var(--text) !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+.title,
+.section-title,
+.sidebar-title,
+.brand {
+	color: var(--heading) !important;
+}
+
+.container,
+.main,
+.main-container,
+.card,
+.panel,
+.section,
+.content,
+.content-card,
+.modal-content,
+.settings-content,
+.settings-group,
+.stat-card,
+.month-selector,
+.salary-month-card,
+.coach-card,
+.center-summary,
+.edit-form,
+.chart-box,
+.kpi-card,
+.kpi-calendar {
+	background: linear-gradient(145deg, var(--panel) 0%, var(--panel-soft) 100%) !important;
+	border-color: var(--border) !important;
+}
+
+table,
+.table {
+	background: var(--surface) !important;
+	border-color: var(--border) !important;
+}
+
+th {
+	background: var(--bg-accent) !important;
+	color: var(--muted) !important;
+}
+
+td,
+.table-row {
+	color: var(--text) !important;
+	border-color: var(--border) !important;
+}
+
+tr:hover,
+.table tr:hover,
+.table-row:hover {
+	background: var(--surface-soft) !important;
+}
+
+input,
+select,
+textarea {
+	background: var(--surface) !important;
+	color: var(--text) !important;
+	border-color: var(--border) !important;
+}
+
+body.dark-theme .muted,
+body.dark-theme .subtitle,
+body.dark-theme .stat-label,
+body.dark-theme .month-label,
+body.dark-theme .salary-label,
+body.dark-theme .kpi-row span,
+body.dark-theme label {
+	color: var(--muted) !important;
+}
+
+body.dark-theme p,
+body.dark-theme span,
+body.dark-theme small,
+body.dark-theme li {
+	color: #d1d5db;
+}
+
+.sidebar,
+.left-nav,
+.sidenav {
+	background: var(--surface) !important;
+	border-right-color: var(--sidebar-border) !important;
+}
+
+.sidebar-link,
+.nav-link {
+	color: var(--text) !important;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active,
+.nav-link:hover,
+.nav-link.active {
+	background: var(--brand) !important;
+	color: #ffffff !important;
+}
+
+.btn,
+button,
+[type="button"],
+[type="submit"] {
+	border-color: transparent;
+}
+
+.sidebar-icon {
+	font-size: 20px;
+	width: 24px;
+	text-align: center;
+	flex-shrink: 0;
+	display: inline-block;
+	line-height: 1;
+}

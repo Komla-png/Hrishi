@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Analytics - Academy Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root { --bg:#070b14; --bg-accent:#1e293b; --panel:#0f172a; --panel-soft:#111c33; --border:#24324f; --text:#e5e7eb; --muted:#9ca3af; --accent:#38bdf8; --accent-strong:#2563eb; --surface:#0b1222; --surface-soft:#111827; --heading:#dbeafe; --chart-grid:rgba(148,163,184,0.18); --chart-text:#cbd5e1; }
+        * { box-sizing: border-box; }
+        body { margin:0; font-family:Inter, Segoe UI, Arial, sans-serif; background:radial-gradient(circle at 10% -20%, var(--bg-accent) 0%, var(--bg) 52%); color:var(--text); }
+        body::before { content:''; position:fixed; inset:0; pointer-events:none; background:linear-gradient(115deg, rgba(56,189,248,0.07), transparent 35%, rgba(37,99,235,0.06) 70%, transparent); z-index:-1; }
+        .layout { display:grid; grid-template-columns:220px 1fr; min-height:100vh; transition:grid-template-columns 0.2s; }
+        .layout.sidebar-collapsed { grid-template-columns:60px 1fr; }
+        .sidebar { position:sticky; top:0; height:100vh; background:var(--surface); border-right:1px solid var(--border); padding:18px 12px; display:flex; flex-direction:column; transition:width 0.2s; }
+        .sidebar-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        .sidebar-toggle { background:0; border:0; color:#dbeafe; cursor:pointer; font-size:20px; padding:8px; }
+        .brand { font-size:18px; font-weight:800; margin:0; color:var(--heading); }
+        .layout.sidebar-collapsed .brand { display:none; }
+        .layout.sidebar-collapsed .sidebar-text { display:none; }
+        .nav-link { display:flex; gap:10px; align-items:center; color:#d1d5db; text-decoration:none; border-radius:10px; padding:10px 12px; margin:4px 0; white-space:nowrap; }
+        .nav-link:hover, .nav-link.active { background:#1d4ed8; color:#fff; }
+        .layout.sidebar-collapsed .nav-link { justify-content:center; padding:10px 0; }
+        .layout.sidebar-collapsed .nav-link .sidebar-text { display:none; }
+        .main { padding:24px; }
+        .topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px; background:linear-gradient(135deg, rgba(11,18,34,0.82), rgba(9,20,44,0.6)); border:1px solid rgba(148,163,184,0.18); border-radius:16px; padding:16px 18px; box-shadow:0 10px 34px rgba(2,6,23,0.3); }
+        .title { margin:0; font-size:40px; font-weight:900; letter-spacing:-0.02em; line-height:1; }
+        .subtitle { margin:8px 0 0; color:var(--muted); font-size:14px; max-width:760px; }
+        .topbar-controls { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:10px; background:color-mix(in srgb, var(--surface) 86%, transparent); border:1px solid color-mix(in srgb, var(--border) 72%, transparent); border-radius:12px; padding:6px; }
+        .filter-select { appearance:none; height:38px; min-height:38px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:6px 30px 6px 10px; font-size:13px; font-weight:700; line-height:1.2; min-width:82px; background-image:linear-gradient(45deg, transparent 50%, #94a3b8 50%), linear-gradient(135deg, #94a3b8 50%, transparent 50%); background-position:calc(100% - 14px) calc(50% - 2px), calc(100% - 9px) calc(50% - 2px); background-size:5px 5px, 5px 5px; background-repeat:no-repeat; }
+        .filter-select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(56,189,248,0.14); }
+        .filter-separator { color:#9ca3af; font-size:13px; font-weight:700; line-height:1; padding:0 2px; align-self:center; }
+        .export-btn { display:inline-flex; align-items:center; justify-content:center; height:38px; min-height:38px; background:rgba(34,197,94,0.14); color:#bbf7d0; border:1px solid rgba(34,197,94,0.45); border-radius:10px; padding:6px 12px; font-size:13px; font-weight:700; line-height:1.2; cursor:pointer; white-space:nowrap; transition:background-color .2s, transform .2s; }
+        .export-btn:hover { background:rgba(34,197,94,0.24); transform:translateY(-1px); }
+        .theme-toggle { background:color-mix(in srgb, var(--surface-soft) 92%, transparent); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:10px 12px; font-weight:700; cursor:pointer; min-width:118px; }
+        .toolbar-stack { display:grid; gap:10px; margin-bottom:18px; }
+        .email-report-bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:linear-gradient(145deg, rgba(11,18,34,0.9), rgba(7,16,34,0.75)); border:1px solid rgba(56,189,248,0.24); border-radius:14px; padding:12px 14px; box-shadow:0 12px 30px rgba(2,6,23,0.28); }
+        .email-label { color:#bfdbfe; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; }
+        .email-input { min-width:260px; flex:1; background:#0b1222; color:#e5e7eb; border:1px solid var(--border); border-radius:12px; padding:10px 12px; font-size:13px; }
+        .email-input:focus { outline:none; border-color:#38bdf8; box-shadow:0 0 0 3px rgba(56,189,248,0.14); }
+        .email-send-btn { background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; border:1px solid #1d4ed8; border-radius:12px; padding:10px 16px; font-weight:700; cursor:pointer; transition:transform .15s ease, box-shadow .2s ease, filter .2s ease; }
+        .email-send-btn:hover { transform:translateY(-1px); filter:brightness(1.05); box-shadow:0 10px 24px rgba(37,99,235,0.35); }
+        .email-send-btn:disabled { opacity:0.65; cursor:not-allowed; }
+        .email-status { width:100%; font-size:12px; color:#cbd5e1; min-height:18px; }
+        .email-status.success { color:#86efac; }
+        .email-status.error { color:#fca5a5; }
+        .center-filter-bar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:0 0 14px; padding:12px 14px; background:rgba(11,18,34,0.75); border:1px solid rgba(56,189,248,0.22); border-radius:14px; }
+        .center-filter-label { color:#bfdbfe; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; }
+        .center-filter-input { min-width:240px; flex:1; background:#0b1222; color:#e5e7eb; border:1px solid var(--border); border-radius:10px; padding:9px 12px; font-size:13px; }
+        .center-filter-input:focus { outline:none; border-color:#38bdf8; box-shadow:0 0 0 3px rgba(56,189,248,0.14); }
+        .center-filter-clear { background:#12233f; color:#dbeafe; border:1px solid var(--border); border-radius:10px; padding:9px 12px; cursor:pointer; font-size:12px; font-weight:700; transition:all .2s ease; }
+        .center-filter-clear:hover { border-color:var(--accent); color:#dff3ff; }
+        .center-filter-viewing { color:#bae6fd; font-size:12px; font-weight:700; border:1px solid rgba(56,189,248,0.35); border-radius:999px; padding:6px 10px; background:rgba(56,189,248,0.12); }
+        .center-filter-count { margin-left:auto; color:var(--muted); font-size:12px; }
+        .cards { display:grid; grid-template-columns:minmax(0, 2fr) minmax(260px, 1fr); gap:12px; margin-bottom:18px; align-items:stretch; }
+        .card, .panel { background:linear-gradient(145deg, var(--panel) 0%, var(--panel-soft) 100%); border:1px solid var(--border); border-radius:14px; padding:14px; box-shadow:0 10px 24px rgba(2,6,23,0.22); transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+        .card:hover, .panel:hover { transform:translateY(-2px); border-color:rgba(56,189,248,0.32); box-shadow:0 16px 32px rgba(2,6,23,0.32); }
+        .card { height:100%; }
+        .card h3 { margin:0; color:#bfdbfe; font-size:13px; }
+        .card .value { margin-top:8px; font-size:24px; font-weight:800; }
+        .card .meta { margin-top:6px; color:var(--muted); font-size:12px; line-height:1.45; }
+        .progress-card { grid-column:1; position:relative; overflow:hidden; }
+        .kpi-side-stack { grid-column:2; display:grid; grid-template-rows:repeat(2, minmax(0, 1fr)); gap:12px; }
+        .progress-card::after { content:''; position:absolute; inset:auto -26px -42px auto; width:120px; height:120px; border-radius:50%; background:radial-gradient(circle, rgba(56,189,248,0.18), transparent 70%); pointer-events:none; }
+        .progress-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:12px; }
+        .progress-title { margin:0; color:#dbeafe; font-size:13px; }
+        .progress-percent { font-size:28px; font-weight:800; line-height:1; }
+        .progress-track { position:relative; width:100%; height:14px; border-radius:999px; background:rgba(15,23,42,0.92); border:1px solid rgba(148,163,184,0.14); overflow:hidden; }
+        .progress-fill { width:0; height:100%; border-radius:inherit; transition:width 0.9s cubic-bezier(0.22, 1, 0.36, 1); box-shadow:0 0 20px rgba(255,255,255,0.08); }
+        .progress-fill.red { background:linear-gradient(90deg, #dc2626, #ef4444); }
+        .progress-fill.yellow { background:linear-gradient(90deg, #d97706, #f59e0b); }
+        .progress-fill.green { background:linear-gradient(90deg, #15803d, #22c55e); }
+        .progress-metrics { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; margin-top:14px; }
+        .progress-metric { background:rgba(15,23,42,0.56); border:1px solid rgba(148,163,184,0.12); border-radius:12px; padding:10px 12px; }
+        .progress-metric .label { display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:6px; }
+        .progress-metric .metric-value { font-size:16px; font-weight:700; color:#f8fafc; }
+        .progress-card.red .progress-percent { color:#fca5a5; }
+        .progress-card.yellow .progress-percent { color:#fde68a; }
+        .progress-card.green .progress-percent { color:#bbf7d0; }
+        .grid { display:grid; grid-template-columns:repeat(2, minmax(280px, 1fr)); gap:14px; }
+        .panel h2 { margin:0 0 12px; font-size:16px; color:var(--heading); letter-spacing:0.01em; }
+        .panel canvas { width:100%; max-height:320px; }
+        .panel.full { grid-column:1 / -1; }
+        .alerts { display:grid; gap:8px; }
+        .alert-item { border-left:4px solid #f59e0b; background:rgba(245,158,11,0.12); border-radius:10px; padding:10px 12px; color:#fef3c7; font-size:13px; }
+        .alert-item.high { border-left-color:#ef4444; background:rgba(239,68,68,0.14); color:#fecaca; }
+        .alert-empty { background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:10px; padding:12px; color:#dcfce7; font-size:13px; }
+        .insights-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; }
+        .insights-subtitle { margin:4px 0 0; color:var(--muted); font-size:13px; }
+        .insights-meta { display:flex; gap:8px; flex-wrap:wrap; }
+        .insights-badge { border:1px solid rgba(148,163,184,0.24); border-radius:999px; padding:6px 10px; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#dbeafe; }
+        .insights-list { display:grid; gap:10px; }
+        .insight-item { border:1px solid rgba(148,163,184,0.14); border-left:4px solid #38bdf8; border-radius:12px; background:rgba(15,23,42,0.72); padding:12px 14px; }
+        .insight-item.high { border-left-color:#ef4444; background:rgba(127,29,29,0.2); }
+        .insight-item.medium { border-left-color:#f59e0b; background:rgba(120,53,15,0.22); }
+        .insight-item.info { border-left-color:#22c55e; background:rgba(20,83,45,0.2); }
+        .insight-topline { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:6px; }
+        .insight-labels { display:flex; gap:8px; flex-wrap:wrap; }
+        .insight-rank, .insight-category { border-radius:999px; padding:4px 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; }
+        .insight-rank { background:rgba(56,189,248,0.16); color:#bae6fd; }
+        .insight-category { background:rgba(148,163,184,0.14); color:#cbd5e1; }
+        .insight-severity { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; }
+        .insight-item.high .insight-severity { color:#fca5a5; }
+        .insight-item.medium .insight-severity { color:#fde68a; }
+        .insight-item.info .insight-severity { color:#bbf7d0; }
+        .insight-message { margin:0; color:#f8fafc; font-size:14px; line-height:1.5; }
+        .insight-action { margin:8px 0 0; color:#cbd5e1; font-size:12px; }
+        .insight-empty { border:1px dashed rgba(148,163,184,0.24); border-radius:12px; padding:14px; color:#cbd5e1; font-size:13px; }
+        .heatmap-wrap { overflow-x:auto; }
+        .heatmap { border-collapse:separate; border-spacing:6px; min-width:900px; width:100%; }
+        .heatmap th, .heatmap td { text-align:center; padding:8px 6px; border-radius:8px; font-size:12px; }
+        .heatmap th { background:color-mix(in srgb, var(--surface-soft) 90%, transparent); color:var(--chart-text); position:sticky; top:0; z-index:3; }
+        .heatmap td.center-name { background:color-mix(in srgb, var(--surface-soft) 94%, transparent); color:var(--heading); font-weight:700; text-align:left; min-width:170px; position:sticky; left:0; z-index:2; }
+        .cards > *, .center-filter-bar, .grid > *, .toolbar-stack { opacity:0; transform:translateY(14px); transition:opacity .45s ease, transform .45s ease; }
+        body.ui-ready .cards > *, body.ui-ready .center-filter-bar, body.ui-ready .grid > *, body.ui-ready .toolbar-stack { opacity:1; transform:translateY(0); }
+        body.ui-ready .grid > *:nth-child(1) { transition-delay:.02s; }
+        body.ui-ready .grid > *:nth-child(2) { transition-delay:.05s; }
+        body.ui-ready .grid > *:nth-child(3) { transition-delay:.08s; }
+        body.ui-ready .grid > *:nth-child(4) { transition-delay:.11s; }
+        body.ui-ready .grid > *:nth-child(5) { transition-delay:.14s; }
+        body.ui-ready .grid > *:nth-child(6) { transition-delay:.17s; }
+        body.ui-ready .grid > *:nth-child(7) { transition-delay:.2s; }
+        body.ui-ready .grid > *:nth-child(8) { transition-delay:.23s; }
+        @media (max-width: 1080px) { .cards{grid-template-columns:minmax(0, 1.5fr) minmax(240px, 1fr);} }
+        @media (max-width: 900px) { .layout{grid-template-columns:1fr;} .sidebar{position:static;height:auto;} .topbar{flex-direction:column;align-items:flex-start;padding:14px;} .topbar-controls{width:100%;justify-content:flex-start;} .title{font-size:32px;} .cards{grid-template-columns:1fr;} .progress-card,.kpi-side-stack{grid-column:1 / -1;} .kpi-side-stack{grid-template-rows:auto;} .grid{grid-template-columns:1fr;} .insights-head{flex-direction:column;} }
+        @media (max-width: 560px) { .main{padding:14px;} .progress-metrics{grid-template-columns:1fr;} .center-filter-count{width:100%; margin-left:0;} .title{font-size:22px;} .topbar-controls{gap:8px;} .filter-select{flex:1 1 calc(50% - 8px); min-width:0;} .filter-separator{display:none;} .export-btn{flex:1 1 100%;} }
+    </style>
+    <link rel="stylesheet" href="/static/sidebar.css">
+</head>
+<body>
+{% include '_sidebar.html' %}
+
+        <main class="main sb-content">
+        <div class="topbar">
+            <div>
+                <h1 class="title">Executive Analytics</h1>
+                <p class="subtitle">Revenue, target, achievement and salary efficiency analytics for {{ start_month[:3] }} {{ start_year }} to {{ end_month[:3] }} {{ end_year }}</p>
+            </div>
+            <div class="topbar-controls">
+                <select class="filter-select" id="startMonth" onchange="updateFilters()">
+                    {% for m in all_months %}<option value="{{ m }}" {% if m == start_month %}selected{% endif %}>{{ m[:3] }}</option>{% endfor %}
+                </select>
+                <select class="filter-select" id="startYear" onchange="updateFilters()">
+                    {% for y in all_years %}<option value="{{ y }}" {% if y == start_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+                </select>
+                <span class="filter-separator">to</span>
+                <select class="filter-select" id="endMonth" onchange="updateFilters()">
+                    {% for m in all_months %}<option value="{{ m }}" {% if m == end_month %}selected{% endif %}>{{ m[:3] }}</option>{% endfor %}
+                </select>
+                <select class="filter-select" id="endYear" onchange="updateFilters()">
+                    {% for y in all_years %}<option value="{{ y }}" {% if y == end_year %}selected{% endif %}>{{ y }}</option>{% endfor %}
+                </select>
+                <button type="button" class="export-btn" onclick="exportAnalyticsToExcel()">Export to Excel</button>
+            </div>
+        </div>
+
+        <script>
+        const calendarMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthIndexMap = Object.fromEntries(calendarMonths.map((month, index) => [month, index + 1]));
+
+        function buildMonthYearKey(month, year) {
+            return (Number(year) * 100) + Number(monthIndexMap[month] || 0);
+        }
+
+        function updateFilters() {
+            const startMonth = document.getElementById('startMonth').value;
+            const startYear = document.getElementById('startYear').value;
+            const endMonth = document.getElementById('endMonth').value;
+            const endYear = document.getElementById('endYear').value;
+
+            if (buildMonthYearKey(endMonth, endYear) < buildMonthYearKey(startMonth, startYear)) {
+                alert('End date cannot be earlier than Start date.');
+                return;
+            }
+
+            window.location.href = `/analytics?start_month=${encodeURIComponent(startMonth)}&start_year=${encodeURIComponent(startYear)}&end_month=${encodeURIComponent(endMonth)}&end_year=${encodeURIComponent(endYear)}`;
+        }
+        </script>
+
+                <section class="cards">
+            <article class="card progress-card {{ summary.progress_status }}">
+                <div class="progress-head">
+                    <div>
+                        <h3 class="progress-title">Target Progress</h3>
+                        <div class="meta">Portfolio achievement against the selected target window</div>
+                    </div>
+                    <div class="progress-percent" id="kpiProgressPercent">{{ summary.achievement_pct }}%</div>
+                </div>
+                <div class="progress-track" aria-label="Revenue target progress">
+                    <div id="targetProgressFill" class="progress-fill {{ summary.progress_status }}" data-progress-width="{{ summary.progress_width }}"></div>
+                </div>
+                <div class="progress-metrics">
+                    <div class="progress-metric">
+                        <span class="label">Total Target</span>
+                        <div class="metric-value" id="kpiTotalTarget">₹{{ '{:,.0f}'.format(summary.total_target) }}</div>
+                    </div>
+                    <div class="progress-metric">
+                        <span class="label">Achieved</span>
+                        <div class="metric-value" id="kpiAchievedRevenue">₹{{ '{:,.0f}'.format(summary.achieved_revenue) }}</div>
+                    </div>
+                    <div class="progress-metric">
+                        <span class="label">Remaining</span>
+                        <div class="metric-value" id="kpiRemainingRevenue">₹{{ '{:,.0f}'.format(summary.remaining_revenue) }}</div>
+                    </div>
+                </div>
+            </article>
+            <div class="kpi-side-stack">
+                <div class="card" id="kpiBestCenterCard"><h3 id="kpiBestCenterLabel">Best Center</h3><div class="value" id="kpiBestCenter" style="font-size:18px;">{{ summary.best_center }}</div></div>
+                <div class="card"><h3>Average Salary %</h3><div class="value" id="kpiAvgSalary">{{ summary.avg_salary_pct }}%</div></div>
+            </div>
+        </section>
+
+        <div class="center-filter-bar">
+            <label class="center-filter-label" for="centerFilterInput">Center Filter</label>
+            <input id="centerFilterInput" class="center-filter-input" type="search" list="centerFilterSuggestions" placeholder="Type center name (e.g., MBC) to filter the full dashboard..." aria-label="Filter analytics dashboard by center">
+            <datalist id="centerFilterSuggestions"></datalist>
+            <button id="centerFilterClear" class="center-filter-clear" type="button">Clear</button>
+            <span id="centerFilterViewing" class="center-filter-viewing">Viewing: All Centers</span>
+            <span id="centerFilterCount" class="center-filter-count"></span>
+        </div>
+
+        <section class="grid">
+            <article class="panel"><h2>Revenue vs Target Monthly Trend</h2><canvas id="monthlyTrendChart"></canvas></article>
+            <article class="panel"><h2>Center Performance Ranking (Achievement %)</h2><canvas id="centerRankChart"></canvas></article>
+            <article class="panel"><h2>Revenue Distribution by Center</h2><canvas id="centerDistributionChart"></canvas></article>
+            <article class="panel"><h2>Target Achievement Distribution</h2><canvas id="achievementDistributionChart"></canvas></article>
+            <article class="panel full"><h2>Monthly Achievement Heatmap (Center vs Month)</h2><div class="heatmap-wrap"><table class="heatmap" id="achievementHeatmap"></table></div></article>
+            <article class="panel full"><h2>Salary % Monitoring by Center</h2><canvas id="salaryMonitoringChart"></canvas></article>
+            <article class="panel"><h2>Smart Alerts - Underperforming Centers</h2><div class="alerts" id="alertsPanel"></div></article>
+            <article class="panel"><h2>Revenue Growth Trend (MoM %)</h2><canvas id="growthTrendChart"></canvas></article>
+            <article class="panel full">
+                <div class="insights-head">
+                    <div>
+                        <h2>AI Insights Panel</h2>
+                        <p class="insights-subtitle">Automatic pattern detection across revenue, target achievement, salary %, growth, and center ranking.</p>
+                    </div>
+                    <div class="insights-meta">
+                        <span class="insights-badge" id="aiInsightCount"></span>
+                        <span class="insights-badge" id="aiActionCount"></span>
+                    </div>
+                </div>
+                <div class="insights-list" id="aiInsightsPanel"></div>
+            </article>
+        </section>
+
+            <section class="toolbar-stack" style="margin-top:18px;">
+                <div class="email-report-bar">
+                    <label class="email-label" for="emailRecipients">Email Recipients</label>
+                    <input id="emailRecipients" class="email-input" type="text" placeholder="owner@example.com, finance@example.com" aria-label="Email recipients for analytics report">
+                    <button id="sendEmailReportBtn" class="email-send-btn" type="button">Send Email Report</button>
+                    <div id="emailReportStatus" class="email-status"></div>
+                </div>
+            </section>
+
+    </main>
+
+<script id="analyticsPayload" type="application/json">{{ {
+    'months': months,
+    'summary': summary,
+    'monthlyRevenue': monthly_revenue,
+    'monthlyTarget': monthly_target,
+    'rankedCenters': ranked_centers,
+    'centerMonthSeries': center_month_series,
+    'previousMonthRevenueByCenter': previous_month_revenue_by_center,
+    'heatmapRows': heatmap_rows,
+    'salaryMonitoringSeries': salary_monitoring_series,
+    'distributionBins': distribution_bins,
+    'monthlyGrowth': monthly_growth,
+    'alerts': alerts,
+    'aiInsights': ai_insights,
+}|tojson|safe }}</script>
+
+<script>
+const analyticsPayload = JSON.parse(document.getElementById('analyticsPayload').textContent);
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+const months = analyticsPayload.months;
+const monthAxisLabels = months.map((monthLabel) => {
+    const parts = String(monthLabel || '').split(' ');
+    if (parts.length >= 2) {
+        const monthName = parts[0];
+        const yearValue = parts[1];
+        return `${monthName.slice(0, 3)} '${String(yearValue).slice(-2)}`;
+    }
+    return String(monthLabel || '').slice(0, 3);
+});
+const monthlyRevenue = analyticsPayload.monthlyRevenue || [];
+const monthlyTarget = analyticsPayload.monthlyTarget || [];
+const allCenterMonthSeries = analyticsPayload.centerMonthSeries || [];
+const previousMonthRevenueByCenter = analyticsPayload.previousMonthRevenueByCenter || {};
+const allRankedCenters = analyticsPayload.rankedCenters || [];
+const allHeatmapRows = analyticsPayload.heatmapRows || [];
+const allSalaryMonitoringSeries = analyticsPayload.salaryMonitoringSeries || [];
+const distributionBins = analyticsPayload.distributionBins || {};
+const monthlyGrowth = analyticsPayload.monthlyGrowth || [];
+const allAlerts = analyticsPayload.alerts || [];
+const aiInsights = analyticsPayload.aiInsights || {};
+const chartInstances = [];
+const centerPalette = ['#38bdf8','#818cf8','#34d399','#f59e0b','#fb7185','#22d3ee','#a3e635','#f472b6'];
+
+let centerFilterValue = '';
+
+function normalizeCenterName(value) {
+    return (value || '').toString().trim().toLowerCase();
+}
+
+function filterByCenterName(items, accessor, query) {
+    if (!query) {
+        return items;
+    }
+    return items.filter((item) => normalizeCenterName(accessor(item)).includes(query));
+}
+
+function filterByCenterQuery(items, accessor, query) {
+    if (!query) {
+        return items;
+    }
+
+    const exactMatches = items.filter((item) => normalizeCenterName(accessor(item)) === query);
+    if (exactMatches.length > 0) {
+        return exactMatches;
+    }
+
+    return filterByCenterName(items, accessor, query);
+}
+
+function toTitleCase(value) {
+    return (value || '').replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatCurrency(value) {
+    return `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+}
+
+function getProgressStatus(percent) {
+    if (percent > 90) {
+        return 'green';
+    }
+    if (percent >= 70) {
+        return 'yellow';
+    }
+    return 'red';
+}
+
+function buildAchievementDistribution(centers) {
+    const bins = {
+        '<60%': 0,
+        '60-79%': 0,
+        '80-99%': 0,
+        '100-119%': 0,
+        '>=120%': 0,
+    };
+
+    centers.forEach((center) => {
+        const achievement = Number(center.achievement || 0);
+        if (achievement < 60) {
+            bins['<60%'] += 1;
+        } else if (achievement < 80) {
+            bins['60-79%'] += 1;
+        } else if (achievement < 100) {
+            bins['80-99%'] += 1;
+        } else if (achievement < 120) {
+            bins['100-119%'] += 1;
+        } else {
+            bins['>=120%'] += 1;
+        }
+    });
+
+    return bins;
+}
+
+function renderAiInsights(items) {
+    const panel = document.getElementById('aiInsightsPanel');
+    const returned = items.length;
+    const actionRequired = items.filter((item) => item.needs_action).length;
+
+    document.getElementById('aiInsightCount').textContent = `${returned} / 5 surfaced`;
+    document.getElementById('aiActionCount').textContent = `${actionRequired} need action`;
+
+    if (!items.length) {
+        panel.innerHTML = '<div class="insight-empty">No insight data is available for the current filters.</div>';
+        return;
+    }
+
+    panel.innerHTML = items.map((item) => {
+        const actionHtml = item.action ? `<p class="insight-action">Action: ${item.action}</p>` : '';
+        return `
+            <article class="insight-item ${item.severity}">
+                <div class="insight-topline">
+                    <div class="insight-labels">
+                        <span class="insight-rank">#${item.rank}</span>
+                        <span class="insight-category">${toTitleCase(item.category)}</span>
+                    </div>
+                    <span class="insight-severity">${item.severity}</span>
+                </div>
+                <p class="insight-message">${item.message}</p>
+                ${actionHtml}
+            </article>
+        `;
+    }).join('');
+}
+
+function getCurrentFilteredData() {
+    return buildFilteredDashboardData(centerFilterValue);
+}
+
+function buildFilteredDashboardData(filterValue) {
+    const query = normalizeCenterName(filterValue);
+    const filteredRankedCenters = filterByCenterQuery(allRankedCenters, (center) => center.name, query);
+    const filteredHeatmapRows = filterByCenterQuery(allHeatmapRows, (row) => row.center, query);
+    const filteredSalarySeries = filterByCenterQuery(allSalaryMonitoringSeries, (series) => series.center, query);
+    const filteredCenterSeries = filterByCenterQuery(allCenterMonthSeries, (series) => series.center, query);
+
+    const previousRevenue = filteredCenterSeries.reduce(
+        (sum, series) => sum + Number(previousMonthRevenueByCenter[series.center] || 0),
+        0,
+    );
+
+    const filteredMonthlyRevenue = months.map((_, monthIndex) => filteredCenterSeries.reduce(
+        (sum, series) => sum + Number((series.revenue || [])[monthIndex] || 0),
+        0,
+    ));
+
+    const filteredMonthlyTarget = months.map((_, monthIndex) => filteredCenterSeries.reduce(
+        (sum, series) => sum + Number((series.target || [])[monthIndex] || 0),
+        0,
+    ));
+
+    const filteredMonthlyGrowth = [];
+    let previousValue = previousRevenue > 0 ? previousRevenue : null;
+    filteredMonthlyRevenue.forEach((monthRevenue) => {
+        if (previousValue === null || previousValue === 0) {
+            filteredMonthlyGrowth.push(null);
+        } else {
+            filteredMonthlyGrowth.push(Number((((monthRevenue - previousValue) / previousValue) * 100).toFixed(1)));
+        }
+        previousValue = monthRevenue;
+    });
+
+    const totalRevenue = filteredRankedCenters.reduce((sum, center) => sum + Number(center.revenue || 0), 0);
+    const totalTarget = filteredRankedCenters.reduce((sum, center) => sum + Number(center.target || 0), 0);
+    const totalSalary = filteredRankedCenters.reduce((sum, center) => sum + Number(center.salary || 0), 0);
+    const achievementPct = totalTarget > 0 ? Number(((totalRevenue / totalTarget) * 100).toFixed(1)) : 0;
+    const avgSalaryPct = totalRevenue > 0 ? Number(((totalSalary / totalRevenue) * 100).toFixed(1)) : 0;
+    const remainingRevenue = Math.max(totalTarget - totalRevenue, 0);
+    const bestCenter = filteredRankedCenters.length ? filteredRankedCenters[0].name : 'N/A';
+
+    const filteredAlerts = filterByCenterQuery(allAlerts, (alert) => alert.center, query);
+    const filteredInsights = filterByCenterQuery((aiInsights && aiInsights.items) || [], (item) => item.center, query);
+    const insightItems = query ? filteredInsights : ((aiInsights && aiInsights.items) || []);
+
+    return {
+        query,
+        filteredRankedCenters,
+        filteredHeatmapRows,
+        filteredSalarySeries,
+        filteredMonthlyRevenue,
+        filteredMonthlyTarget,
+        filteredMonthlyGrowth,
+        filteredDistributionBins: buildAchievementDistribution(filteredRankedCenters),
+        filteredAlerts,
+        insightItems,
+        summary: {
+            totalRevenue,
+            totalTarget,
+            achievedRevenue: totalRevenue,
+            remainingRevenue,
+            achievementPct,
+            progressWidth: Math.max(0, Math.min(achievementPct, 100)),
+            progressStatus: getProgressStatus(achievementPct),
+            avgSalaryPct,
+            bestCenter,
+        },
+    };
+}
+
+function renderSummaryCards(summary, options = {}) {
+    const {
+        showBestCenter = true,
+        bestCenterLabel = 'Best Center',
+        bestCenterValue = summary.bestCenter,
+    } = options;
+
+    document.getElementById('kpiProgressPercent').textContent = `${summary.achievementPct}%`;
+    document.getElementById('kpiTotalTarget').textContent = formatCurrency(summary.totalTarget);
+    document.getElementById('kpiAchievedRevenue').textContent = formatCurrency(summary.achievedRevenue);
+    document.getElementById('kpiRemainingRevenue').textContent = formatCurrency(summary.remainingRevenue);
+
+    const bestCenterCard = document.getElementById('kpiBestCenterCard');
+    const bestCenterLabelNode = document.getElementById('kpiBestCenterLabel');
+    const bestCenterValueNode = document.getElementById('kpiBestCenter');
+    if (bestCenterCard) {
+        bestCenterCard.style.display = showBestCenter ? '' : 'none';
+    }
+    if (bestCenterLabelNode) {
+        bestCenterLabelNode.textContent = bestCenterLabel;
+    }
+    if (bestCenterValueNode) {
+        bestCenterValueNode.textContent = bestCenterValue;
+    }
+
+    document.getElementById('kpiAvgSalary').textContent = `${summary.avgSalaryPct}%`;
+
+    const progressCard = document.querySelector('.progress-card');
+    const progressFill = document.getElementById('targetProgressFill');
+    progressCard.classList.remove('red', 'yellow', 'green');
+    progressCard.classList.add(summary.progressStatus);
+    progressFill.classList.remove('red', 'yellow', 'green');
+    progressFill.classList.add(summary.progressStatus);
+    progressFill.style.width = `${summary.progressWidth}%`;
+}
+
+function renderAlerts(alerts) {
+    const alertsPanel = document.getElementById('alertsPanel');
+    if (!alerts.length) {
+        alertsPanel.innerHTML = '<div class="alert-empty">All centers are performing within thresholds for this filter.</div>';
+        return;
+    }
+
+    alertsPanel.innerHTML = alerts.map((alert) => `
+        <div class="alert-item ${alert.severity}"><strong>${alert.center}</strong>: ${alert.message}</div>
+    `).join('');
+}
+
+function exportAnalyticsToExcel() {
+    if (typeof XLSX === 'undefined') {
+        alert('Excel export library could not be loaded. Please refresh and try again.');
+        return;
+    }
+
+    const fromMonth = document.getElementById('startMonth').value;
+    const fromYear = document.getElementById('startYear').value;
+    const toMonth = document.getElementById('endMonth').value;
+    const toYear = document.getElementById('endYear').value;
+    const {
+        filteredRankedCenters,
+        filteredHeatmapRows,
+        filteredSalarySeries,
+        filteredMonthlyRevenue,
+        filteredMonthlyTarget,
+        filteredMonthlyGrowth,
+        filteredDistributionBins,
+        insightItems,
+    } = getCurrentFilteredData();
+
+    const currencyFmt = '"\u20b9"#,##0.00';
+    const percentFmt = '0.0"%"';
+
+    const centerRows = [[
+        'Center Name',
+        'Monthly Revenue',
+        'Target',
+        'Achievement %',
+        'Salary %',
+        'Incentive',
+        'Excess Revenue',
+        'Salary Amount',
+    ]];
+
+    filteredRankedCenters.forEach((center) => {
+        const revenue = Number(center.revenue || 0);
+        const target = Number(center.target || 0);
+        const salary = Number(center.salary || 0);
+        const achievement = Number(center.achievement || 0);
+        const salaryPercent = Number(center.salary_percent || 0);
+        const excessRevenue = Number(Math.max(0, revenue - target).toFixed(2));
+        const incentive = Number((excessRevenue * 0.1).toFixed(2));
+        centerRows.push([
+            center.name,
+            revenue,
+            target,
+            achievement,
+            salaryPercent,
+            incentive,
+            excessRevenue,
+            salary,
+        ]);
+    });
+
+    const monthlyRows = [['Month', 'Revenue', 'Target', 'Achievement %', 'MoM Growth %']];
+    months.forEach((month, index) => {
+        const revenue = Number(filteredMonthlyRevenue[index] || 0);
+        const target = Number(filteredMonthlyTarget[index] || 0);
+        const achievement = target > 0 ? Number(((revenue / target) * 100).toFixed(1)) : 0;
+        const growth = filteredMonthlyGrowth[index] == null ? null : Number(filteredMonthlyGrowth[index]);
+        monthlyRows.push([month, revenue, target, achievement, growth]);
+    });
+
+    const salaryRows = [['Center Name', ...months.map((month) => `${month} Salary %`)]];
+    filteredSalarySeries.forEach((series) => {
+        salaryRows.push([series.center, ...series.values.map((value) => Number(value || 0))]);
+    });
+
+    const heatmapRowsData = [['Center Name', ...months.map((month) => `${month} Achievement %`)]];
+    filteredHeatmapRows.forEach((row) => {
+        heatmapRowsData.push([row.center, ...row.values.map((value) => Number(value || 0))]);
+    });
+
+    const distributionRows = [['Achievement Bucket', 'Centers Count']];
+    Object.entries(filteredDistributionBins).forEach(([bucket, count]) => {
+        distributionRows.push([bucket, Number(count || 0)]);
+    });
+
+    const aiRows = [['Rank', 'Category', 'Severity', 'Message', 'Action']];
+    insightItems.forEach((item) => {
+        aiRows.push([
+            Number(item.rank || 0),
+            item.category || '',
+            item.severity || '',
+            item.message || '',
+            item.action || '',
+        ]);
+    });
+
+    const workbook = XLSX.utils.book_new();
+
+    const centerSheet = XLSX.utils.aoa_to_sheet(centerRows);
+    centerSheet['!cols'] = [{ wch: 24 }, { wch: 18 }, { wch: 16 }, { wch: 15 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 14 }];
+    for (let r = 1; r < centerRows.length; r++) {
+        [1, 2, 5, 6, 7].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (centerSheet[ref]) centerSheet[ref].z = currencyFmt;
+        });
+        [3, 4].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (centerSheet[ref]) centerSheet[ref].z = percentFmt;
+        });
+    }
+    XLSX.utils.book_append_sheet(workbook, centerSheet, 'Center Analytics');
+
+    const monthlySheet = XLSX.utils.aoa_to_sheet(monthlyRows);
+    monthlySheet['!cols'] = [{ wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }];
+    for (let r = 1; r < monthlyRows.length; r++) {
+        [1, 2].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (monthlySheet[ref]) monthlySheet[ref].z = currencyFmt;
+        });
+        [3, 4].forEach((c) => {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (monthlySheet[ref]) monthlySheet[ref].z = percentFmt;
+        });
+    }
+    XLSX.utils.book_append_sheet(workbook, monthlySheet, 'Monthly Trend');
+
+    const salarySheet = XLSX.utils.aoa_to_sheet(salaryRows);
+    salarySheet['!cols'] = [{ wch: 24 }, ...months.map(() => ({ wch: 12 }))];
+    for (let r = 1; r < salaryRows.length; r++) {
+        for (let c = 1; c <= months.length; c++) {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (salarySheet[ref]) salarySheet[ref].z = percentFmt;
+        }
+    }
+    XLSX.utils.book_append_sheet(workbook, salarySheet, 'Salary Monitoring');
+
+    const heatmapSheet = XLSX.utils.aoa_to_sheet(heatmapRowsData);
+    heatmapSheet['!cols'] = [{ wch: 24 }, ...months.map(() => ({ wch: 15 }))];
+    for (let r = 1; r < heatmapRowsData.length; r++) {
+        for (let c = 1; c <= months.length; c++) {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (heatmapSheet[ref]) heatmapSheet[ref].z = percentFmt;
+        }
+    }
+    XLSX.utils.book_append_sheet(workbook, heatmapSheet, 'Achievement Heatmap');
+
+    const distributionSheet = XLSX.utils.aoa_to_sheet(distributionRows);
+    distributionSheet['!cols'] = [{ wch: 20 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(workbook, distributionSheet, 'Distribution');
+
+    const aiSheet = XLSX.utils.aoa_to_sheet(aiRows);
+    aiSheet['!cols'] = [{ wch: 8 }, { wch: 18 }, { wch: 12 }, { wch: 72 }, { wch: 42 }];
+    XLSX.utils.book_append_sheet(workbook, aiSheet, 'AI Insights');
+
+    const cleanToken = (token) => String(token || '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const fileName = `Analytics_Report_${cleanToken(fromMonth)}_${cleanToken(fromYear)}_to_${cleanToken(toMonth)}_${cleanToken(toYear)}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+}
+
+async function sendEmailReport() {
+    const recipientsInput = document.getElementById('emailRecipients');
+    const sendButton = document.getElementById('sendEmailReportBtn');
+    const statusElement = document.getElementById('emailReportStatus');
+    const recipients = recipientsInput.value.trim();
+
+    statusElement.className = 'email-status';
+    if (!recipients) {
+        statusElement.classList.add('error');
+        statusElement.textContent = 'Enter one or more recipient emails separated by commas.';
+        recipientsInput.focus();
+        return;
+    }
+
+    sendButton.disabled = true;
+    sendButton.textContent = 'Sending...';
+    statusElement.textContent = 'Sending analytics report...';
+
+    try {
+        const response = await fetch('/analytics/send-email-report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify({
+                recipients,
+                selected_center: document.getElementById('centerFilterInput').value,
+                start_month: document.getElementById('startMonth').value,
+                start_year: document.getElementById('startYear').value,
+                end_month: document.getElementById('endMonth').value,
+                end_year: document.getElementById('endYear').value,
+            }),
+        });
+
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+            throw new Error(payload.error || 'Unable to send email report.');
+        }
+
+        statusElement.classList.add('success');
+        statusElement.textContent = payload.message || 'Email report sent successfully.';
+    } catch (error) {
+        statusElement.classList.add('error');
+        statusElement.textContent = error.message || 'Unable to send email report.';
+    } finally {
+        sendButton.disabled = false;
+        sendButton.textContent = 'Send Email Report';
+    }
+}
+
+document.getElementById('sendEmailReportBtn').addEventListener('click', sendEmailReport);
+
+function animateTargetProgress() {
+    document.querySelectorAll('.progress-fill[data-progress-width]').forEach((element) => {
+        const width = Number(element.getAttribute('data-progress-width')) || 0;
+        requestAnimationFrame(() => {
+            element.style.width = `${Math.max(0, Math.min(width, 100))}%`;
+        });
+    });
+}
+
+animateTargetProgress();
+
+function getCssVar(name) {
+    return getComputedStyle(document.body).getPropertyValue(name).trim();
+}
+
+function getThemeColorSet() {
+    return {
+        text: getCssVar('--chart-text') || '#cbd5e1',
+        grid: getCssVar('--chart-grid') || 'rgba(148,163,184,0.18)',
+        surface: getCssVar('--surface') || '#0b1222',
+    };
+}
+
+function applyThemeToCharts() {
+    const colors = getThemeColorSet();
+    chartInstances.forEach((chart) => {
+        if (chart.options?.plugins?.legend?.labels) {
+            chart.options.plugins.legend.labels.color = colors.text;
+        }
+        if (chart.options?.scales) {
+            Object.values(chart.options.scales).forEach((scale) => {
+                if (scale?.grid) {
+                    scale.grid.color = colors.grid;
+                }
+                if (scale?.ticks) {
+                    scale.ticks.color = colors.text;
+                }
+            });
+        }
+        chart.update();
+    });
+}
+
+const monthlyTrendChart = new Chart(document.getElementById('monthlyTrendChart'), { type:'line', data:{ labels:monthAxisLabels, datasets:[{label:'Revenue',data:monthlyRevenue,borderColor:'#38bdf8',backgroundColor:'rgba(56,189,248,0.2)',fill:true,tension:0.35,borderWidth:2},{label:'Target',data:monthlyTarget,borderColor:'#a78bfa',backgroundColor:'rgba(167,139,250,0.14)',fill:true,tension:0.35,borderWidth:2}]}, options:{ plugins:{legend:{ labels:{ color:'#cbd5e1', font:{ weight:'600' } } }}, scales:{ y:{grid:{ color:'rgba(148,163,184,0.18)' },ticks:{color:'#cbd5e1',callback:v=>'\u20B9'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})}}, x:{grid:{ color:'rgba(148,163,184,0.18)' },ticks:{color:'#cbd5e1'}} } } });
+const centerRankChart = new Chart(document.getElementById('centerRankChart'), { type:'bar', data:{ labels:[], datasets:[{label:'Achievement %',data:[],backgroundColor:[],borderRadius:8}]}, options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ y:{grid:{ color:'rgba(148,163,184,0.18)' },ticks:{color:'#cbd5e1'}}, x:{grid:{ color:'rgba(148,163,184,0.18)' },ticks:{color:'#cbd5e1',callback:v=>v+'%'}} } } });
+const centerDistributionChart = new Chart(document.getElementById('centerDistributionChart'), { type:'pie', data:{ labels:[], datasets:[{data:[],backgroundColor:[]}]}, options:{ plugins:{legend:{position:'bottom',labels:{color:'#cbd5e1',boxWidth:12}}} } });
+const achievementDistributionChart = new Chart(document.getElementById('achievementDistributionChart'), { type:'bar', data:{ labels:Object.keys(distributionBins), datasets:[{label:'Centers',data:Object.values(distributionBins),backgroundColor:['#dc2626','#f97316','#f59e0b','#22c55e','#16a34a'],borderRadius:8}]}, options:{ plugins:{legend:{display:false}}, scales:{ y:{grid:{ color:'rgba(148,163,184,0.18)' },ticks:{color:'#cbd5e1',precision:0}}, x:{grid:{ color:'rgba(148,163,184,0.18)' },ticks:{color:'#cbd5e1'}} } } });
+const salaryMonitoringChart = new Chart(document.getElementById('salaryMonitoringChart'), { type:'line', data:{ labels:monthAxisLabels, datasets:[]}, options:{ plugins:{legend:{ labels:{ color:'#cbd5e1', font:{ weight:'600' } } }}, scales:{ y:{grid:{ color:'rgba(148,163,184,0.18)' },ticks:{color:'#cbd5e1',callback:v=>v+'%'}}, x:{grid:{ color:'rgba(148,163,184,0.18)' },ticks:{color:'#cbd5e1'}} } } });
+const growthTrendChart = new Chart(document.getElementById('growthTrendChart'), { type:'line', data:{ labels:monthAxisLabels, datasets:[{label:'MoM Growth %',data:monthlyGrowth,borderColor:'#22d3ee',backgroundColor:'rgba(34,211,238,0.2)',fill:true,tension:0.25,spanGaps:true,borderWidth:2}]}, options:{ plugins:{legend:{ labels:{ color:'#cbd5e1', font:{ weight:'600' } } }}, scales:{ y:{grid:{ color:'rgba(148,163,184,0.18)' },ticks:{color:'#cbd5e1',callback:v=>v+'%'}}, x:{grid:{ color:'rgba(148,163,184,0.18)' },ticks:{color:'#cbd5e1'}} } } });
+
+chartInstances.push(monthlyTrendChart, centerRankChart, centerDistributionChart, achievementDistributionChart, salaryMonitoringChart, growthTrendChart);
+applyThemeToCharts();
+
+function getHeatColor(v){ if(v>=100)return '#14532d'; if(v>=80)return '#854d0e'; if(v>=60)return '#9a3412'; return '#7f1d1d'; }
+const heatmap = document.getElementById('achievementHeatmap');
+const thead = document.createElement('thead');
+const headRow = document.createElement('tr');
+const centerHead = document.createElement('th'); centerHead.textContent = 'Center'; headRow.appendChild(centerHead);
+monthAxisLabels.forEach((label)=>{ const th=document.createElement('th'); th.textContent=label; headRow.appendChild(th); });
+thead.appendChild(headRow); heatmap.appendChild(thead);
+const tbody = document.createElement('tbody');
+heatmap.appendChild(tbody);
+
+function renderHeatmap(rows) {
+    tbody.innerHTML = '';
+    if (!rows.length) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = months.length + 1;
+        emptyCell.textContent = 'No centers match the current filter.';
+        emptyCell.style.textAlign = 'center';
+        emptyCell.style.color = '#94a3b8';
+        emptyCell.style.padding = '14px';
+        emptyCell.style.background = getThemeColorSet().surface;
+        emptyCell.style.borderRadius = '8px';
+        emptyRow.appendChild(emptyCell);
+        tbody.appendChild(emptyRow);
+        return;
+    }
+
+    rows.forEach((row) => {
+        const tr = document.createElement('tr');
+        const tdCenter = document.createElement('td');
+        tdCenter.className = 'center-name';
+        tdCenter.textContent = row.center;
+        tr.appendChild(tdCenter);
+        row.values.forEach((v) => {
+            const td = document.createElement('td');
+            td.textContent = v + '%';
+            td.style.background = getHeatColor(v);
+            td.style.color = '#f8fafc';
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+function renderFilteredCenterViews() {
+    const filteredData = buildFilteredDashboardData(centerFilterValue);
+    const {
+        query,
+        filteredRankedCenters,
+        filteredHeatmapRows,
+        filteredSalarySeries,
+        filteredMonthlyRevenue,
+        filteredMonthlyTarget,
+        filteredMonthlyGrowth,
+        filteredDistributionBins,
+        filteredAlerts,
+        insightItems,
+        summary,
+    } = filteredData;
+
+    const isSingleCenterScope = Boolean(query) && filteredRankedCenters.length === 1;
+    renderSummaryCards(summary, {
+        showBestCenter: !isSingleCenterScope,
+    });
+
+    centerRankChart.data.labels = filteredRankedCenters.map((center) => center.name);
+    centerRankChart.data.datasets[0].data = filteredRankedCenters.map((center) => center.achievement);
+    centerRankChart.data.datasets[0].backgroundColor = filteredRankedCenters.map((center) => center.achievement >= 100 ? '#22c55e' : (center.achievement >= 80 ? '#f59e0b' : '#ef4444'));
+    centerRankChart.update();
+
+    centerDistributionChart.data.labels = filteredRankedCenters.map((center) => center.name);
+    centerDistributionChart.data.datasets[0].data = filteredRankedCenters.map((center) => center.revenue);
+    centerDistributionChart.data.datasets[0].backgroundColor = filteredRankedCenters.map((_, index) => centerPalette[index % centerPalette.length]);
+    centerDistributionChart.update();
+
+    monthlyTrendChart.data.datasets[0].data = filteredMonthlyRevenue;
+    monthlyTrendChart.data.datasets[1].data = filteredMonthlyTarget;
+    monthlyTrendChart.update();
+
+    growthTrendChart.data.datasets[0].data = filteredMonthlyGrowth;
+    growthTrendChart.update();
+
+    achievementDistributionChart.data.labels = Object.keys(filteredDistributionBins);
+    achievementDistributionChart.data.datasets[0].data = Object.values(filteredDistributionBins);
+    achievementDistributionChart.update();
+
+    salaryMonitoringChart.data.datasets = filteredSalarySeries.map((series, index) => ({
+        label: series.center,
+        data: series.values,
+        borderColor: centerPalette[index % centerPalette.length],
+        tension: 0.3,
+        pointRadius: 2,
+        borderWidth: 2,
+        fill: false,
+    }));
+    salaryMonitoringChart.update();
+
+    renderHeatmap(filteredHeatmapRows);
+    renderAlerts(filteredAlerts);
+    renderAiInsights(insightItems);
+
+    const countElement = document.getElementById('centerFilterCount');
+    const viewingElement = document.getElementById('centerFilterViewing');
+    const matchedCount = filteredHeatmapRows.length;
+    countElement.textContent = `${matchedCount} center${matchedCount === 1 ? '' : 's'} shown`;
+
+    if (!query) {
+        viewingElement.textContent = 'Viewing: All Centers';
+    } else if (filteredRankedCenters.length === 1) {
+        viewingElement.textContent = `Viewing: ${filteredRankedCenters[0].name}`;
+    } else {
+        viewingElement.textContent = `Viewing: ${matchedCount} Centers`;
+    }
+}
+
+const centerFilterInput = document.getElementById('centerFilterInput');
+const centerFilterClear = document.getElementById('centerFilterClear');
+const centerFilterSuggestions = document.getElementById('centerFilterSuggestions');
+
+const uniqueCenterNames = Array.from(new Set(allRankedCenters.map((center) => center.name))).sort((a, b) => a.localeCompare(b));
+centerFilterSuggestions.innerHTML = uniqueCenterNames.map((name) => `<option value="${name}"></option>`).join('');
+
+centerFilterInput.addEventListener('input', (event) => {
+    centerFilterValue = event.target.value;
+    renderFilteredCenterViews();
+});
+
+centerFilterClear.addEventListener('click', () => {
+    centerFilterValue = '';
+    centerFilterInput.value = '';
+    centerFilterInput.focus();
+    renderFilteredCenterViews();
+});
+
+renderFilteredCenterViews();
+requestAnimationFrame(() => document.body.classList.add('ui-ready'));
+</script>
+<script src="/static/sidebar.js"></script>
+</body>
+</html>

@@ -8,12 +8,22 @@
         * {
             box-sizing: border-box;
         }
+
+        :root {
+            --space-1: 8px;
+            --space-2: 16px;
+            --space-3: 24px;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --shadow-sm: 0 2px 8px rgba(15,23,42,0.08);
+            --shadow-md: 0 8px 22px rgba(15,23,42,0.16);
+        }
         
         body {
             font-family: Inter, Segoe UI, Arial, sans-serif;
             margin: 0;
-            padding: 30px;
-            background: #000000;
+            padding: 0;
+            background: #070b14;
             min-height: 100vh;
         }
 
@@ -21,9 +31,9 @@
             max-width: 1400px;
             margin: auto;
             background: #f8fafc;
-            padding: 25px;
-            border-radius: 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            padding: var(--space-3);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
         }
 
         /* Header */
@@ -31,128 +41,195 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
+            margin-bottom: var(--space-3);
             flex-wrap: wrap;
-            gap: 15px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #e2e8f0;
+            gap: var(--space-2);
+            padding-bottom: var(--space-2);
+            border-bottom: 1px solid #dbe3ef;
         }
 
         .header h1 {
             margin: 0;
-            color: #0f172a;
+            color: #0b1220;
             font-size: 28px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--space-1);
         }
 
         .header-actions {
             display: flex;
-            gap: 10px;
+            gap: var(--space-1);
             flex-wrap: wrap;
+            align-items: center;
         }
 
         /* Buttons */
         .btn {
-            border: none;
-            padding: 10px 18px;
-            border-radius: 8px;
+            border: 1px solid rgba(148,163,184,0.3);
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
             font-weight: 600;
-            transition: all 0.2s;
+            transition: background-color 0.18s, border-color 0.18s, color 0.18s, transform 0.18s;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            font-size: 14px;
+            font-size: 13px;
+            background: rgba(30,41,59,0.6);
+            color: #cbd5e1;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            background: rgba(51,65,85,0.9);
+            border-color: rgba(148,163,184,0.55);
+            color: #f1f5f9;
+            transform: translateY(-1px);
         }
 
-        .btn-primary { background: #3b82f6; color: white; }
-        .btn-success { background: #10b981; color: white; }
-        .btn-danger { background: #ef4444; color: white; }
-        .btn-secondary { background: #64748b; color: white; }
-        .btn-purple { background: #8b5cf6; color: white; }
-        .btn-dark { background: #1e293b; color: white; }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+        .btn-success { background: #10b981; color: white; border-color: #10b981; }
+        .btn-success:hover { background: #059669; border-color: #059669; color: white; }
+        .btn-danger {
+            background: transparent;
+            color: #f87171;
+            border-color: rgba(248,113,113,0.35);
+        }
+        .btn-danger:hover {
+            background: rgba(239,68,68,0.15);
+            border-color: #f87171;
+            color: #fca5a5;
+        }
+        .btn-secondary { background: rgba(30,41,59,0.6); color: #94a3b8; border-color: rgba(148,163,184,0.3); }
+        .btn-purple { background: #8b5cf6; color: white; border-color: #8b5cf6; }
+        .btn-dark { background: rgba(30,41,59,0.6); color: #cbd5e1; border-color: rgba(148,163,184,0.3); }
         
         .btn-sm {
-            padding: 6px 12px;
+            padding: 6px 10px;
             font-size: 12px;
         }
 
-        /* Month Selector */
-        .month-selector {
-            background: white;
-            padding: 15px 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        /* Filter Bar */
+        .filter-row {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: var(--space-1);
             flex-wrap: wrap;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-md);
+            padding: var(--space-1) var(--space-2);
+            margin-bottom: var(--space-2);
         }
 
-        .month-selector label {
+        .filter-row-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #64748b;
+            padding-right: 6px;
+            border-right: 1px solid #cbd5e1;
+            margin-right: 2px;
+            white-space: nowrap;
+        }
+
+        .filter-row select {
+            padding: 7px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
             font-weight: 600;
-            color: #374151;
-        }
-
-        .month-selector select {
-            padding: 10px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
             background: white;
+            color: #1e293b;
             cursor: pointer;
-            min-width: 150px;
+            min-width: 130px;
+            appearance: auto;
         }
 
-        .month-selector select:focus {
+        .filter-row select:focus {
             outline: none;
             border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.14);
+        }
+
+        .filter-divider {
+            width: 1px;
+            height: 20px;
+            background: #cbd5e1;
+            flex-shrink: 0;
         }
 
         .current-month-badge {
-            background: #dbeafe;
-            color: #1d4ed8;
-            padding: 6px 14px;
+            margin-left: auto;
+            background: rgba(59,130,246,0.1);
+            color: #2563eb;
+            border: 1px solid rgba(59,130,246,0.25);
+            padding: 4px 10px;
             border-radius: 20px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Dark theme filter row */
+        body.dark-theme .filter-row {
+            background: rgba(15,23,42,0.7);
+            border-color: #1e3a5f;
+        }
+        body.dark-theme .filter-row-label {
+            color: #64748b;
+            border-right-color: #334155;
+        }
+        body.dark-theme .filter-row select {
+            background: #0f172a;
+            color: #e2e8f0;
+            border-color: #334155;
+        }
+        body.dark-theme .filter-divider {
+            background: #334155;
+        }
+        body.dark-theme .current-month-badge {
+            background: rgba(59,130,246,0.15);
+            color: #93c5fd;
+            border-color: rgba(59,130,246,0.3);
         }
 
         /* Section Cards */
         .section {
             background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-radius: var(--radius-md);
+            padding: var(--space-2);
+            margin-bottom: var(--space-2);
+            box-shadow: var(--shadow-sm);
         }
 
         .section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
+            margin-bottom: var(--space-2);
+            padding-bottom: 12px;
             border-bottom: 1px solid #e2e8f0;
         }
 
         .section-title {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
-            color: #0f172a;
+            color: #0b1220;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--space-1);
             margin: 0;
         }
 
@@ -160,23 +237,23 @@
         .salary-calendar {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
-            gap: 12px;
+            gap: var(--space-1);
         }
 
         .salary-month-card {
             background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 15px;
+            border: 1px solid #d9e1ee;
+            border-radius: var(--radius-sm);
+            padding: var(--space-2);
             text-decoration: none;
             color: inherit;
-            transition: all 0.2s;
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
         }
 
         .salary-month-card:hover {
             border-color: #3b82f6;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(59,130,246,0.15);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(59,130,246,0.12);
         }
 
         .salary-month-card.active {
@@ -187,85 +264,128 @@
         .salary-month-card .month-name {
             font-weight: 700;
             color: #1e293b;
-            font-size: 14px;
-            margin-bottom: 8px;
+            font-size: 13px;
+            margin-bottom: var(--space-1);
         }
 
         .salary-month-card .salary-amount {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
             color: #10b981;
         }
 
         .salary-month-card .salary-label {
-            font-size: 11px;
-            color: #64748b;
+            font-size: 12px;
+            color: #475569;
             margin-top: 4px;
         }
 
         /* Add Coach Form */
         .add-coach-form {
             display: flex;
-            gap: 15px;
-            align-items: flex-end;
+            gap: var(--space-1);
+            align-items: center;
             flex-wrap: wrap;
         }
 
-        .form-group {
+        .bulk-mode-row {
+            width: 100%;
             display: flex;
-            flex-direction: column;
-            gap: 6px;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .bulk-mode-hint {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .bulk-input-wrap {
+            width: 100%;
+            display: none;
+        }
+
+        .bulk-input-wrap textarea {
+            width: 100%;
+            min-height: 110px;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            line-height: 1.5;
+            background: white;
+            color: #1e293b;
+            resize: vertical;
+        }
+
+        .bulk-input-wrap textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.14);
+        }
+
+        .bulk-format-note {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .form-group {
+            display: contents;
         }
 
         .form-group label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #374151;
+            display: none;
         }
 
         .form-group input,
         .form-group select {
-            padding: 10px 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 14px;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
             min-width: 180px;
+            background: white;
+            color: #1e293b;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
             border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.14);
         }
 
         /* Center Group */
         .center-group {
-            margin-bottom: 25px;
+            margin-bottom: var(--space-2);
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             overflow: hidden;
         }
 
         .center-header {
             background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
             color: white;
-            padding: 15px 20px;
+            padding: 12px var(--space-2);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .center-name {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: var(--space-1);
         }
 
         .coach-count {
             background: #3b82f6;
-            padding: 5px 14px;
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 13px;
             font-weight: 600;
@@ -274,37 +394,53 @@
         .center-header-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--space-1);
+            margin-left: auto;
         }
 
         .toggle-details-btn {
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.3);
+            background: #3b82f6;
+            border: 1px solid rgba(59,130,246,0.95);
             color: white;
-            padding: 6px 14px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.2s;
+            font-size: 13px;
+            font-weight: 700;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
             display: flex;
             align-items: center;
             gap: 6px;
+            margin-left: auto;
+            box-shadow: 0 4px 10px rgba(37,99,235,0.2);
         }
 
         .toggle-details-btn:hover {
-            background: rgba(255,255,255,0.25);
+            background: #2563eb;
+            border-color: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(37,99,235,0.24);
+        }
+
+        .toggle-details-btn:active {
+            transform: translateY(0);
         }
 
         .toggle-details-btn.active {
-            background: #10b981;
-            border-color: #10b981;
+            background: #1d4ed8;
+            border-color: #1d4ed8;
+            box-shadow: 0 6px 14px rgba(29,78,216,0.26);
+        }
+
+        .toggle-details-btn .toggle-icon {
+            font-size: 14px;
+            line-height: 1;
         }
 
         /* Coach Card */
         .coach-card {
             background: white;
-            padding: 20px;
+            padding: var(--space-2);
             border-bottom: 1px solid #e2e8f0;
             display: none;
         }
@@ -319,9 +455,9 @@
 
         /* Hidden state summary */
         .center-summary {
-            padding: 20px;
+            padding: var(--space-2);
             text-align: center;
-            color: #64748b;
+            color: #475569;
             background: #f8fafc;
         }
 
@@ -333,22 +469,22 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: var(--space-2);
             flex-wrap: wrap;
-            gap: 15px;
+            gap: var(--space-2);
         }
 
         .coach-details {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: var(--space-2);
         }
 
         .coach-avatar {
             width: 48px;
             height: 48px;
             background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            border-radius: 12px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -358,13 +494,13 @@
         }
 
         .coach-name {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
-            color: #0f172a;
+            color: #111827;
         }
 
         .coach-current-salary {
-            font-size: 14px;
+            font-size: 13px;
             color: #10b981;
             font-weight: 600;
             margin-top: 4px;
@@ -380,8 +516,8 @@
             display: none;
             grid-template-columns: repeat(12, 1fr);
             gap: 8px;
-            margin-top: 15px;
-            padding-top: 15px;
+            margin-top: var(--space-2);
+            padding-top: var(--space-2);
             border-top: 1px solid #f1f5f9;
         }
 
@@ -391,9 +527,9 @@
 
         .salary-cell {
             background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 10px 6px;
+            border: 1px solid #dbe3ef;
+            border-radius: var(--radius-sm);
+            padding: var(--space-1) 6px;
             text-align: center;
             transition: all 0.2s;
         }
@@ -409,9 +545,9 @@
         }
 
         .salary-cell .month-label {
-            font-size: 11px;
+            font-size: 12px;
             font-weight: 700;
-            color: #64748b;
+            color: #475569;
             margin-bottom: 6px;
             text-transform: uppercase;
         }
@@ -420,7 +556,7 @@
             width: 100%;
             padding: 6px 4px;
             border: 1px solid #cbd5e1;
-            border-radius: 6px;
+            border-radius: var(--radius-sm);
             text-align: center;
             font-size: 12px;
             font-weight: 600;
@@ -434,9 +570,9 @@
         /* Edit Form */
         .edit-form {
             background: #f1f5f9;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 15px;
+            padding: var(--space-2);
+            border-radius: var(--radius-md);
+            margin-top: var(--space-2);
             display: none;
         }
 
@@ -446,7 +582,7 @@
 
         .edit-form-content {
             display: flex;
-            gap: 12px;
+            gap: var(--space-1);
             align-items: flex-end;
             flex-wrap: wrap;
         }
@@ -454,13 +590,13 @@
         /* Empty State */
         .empty-state {
             text-align: center;
-            padding: 40px 20px;
-            color: #64748b;
+            padding: 32px var(--space-2);
+            color: #475569;
         }
 
         .empty-state-icon {
             font-size: 48px;
-            margin-bottom: 15px;
+            margin-bottom: var(--space-2);
         }
 
         .empty-state-text {
@@ -471,7 +607,7 @@
         /* Filter */
         .filter-bar {
             display: flex;
-            gap: 15px;
+            gap: var(--space-1);
             align-items: center;
             flex-wrap: wrap;
         }
@@ -480,29 +616,29 @@
         .stats-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: var(--space-2);
+            margin-bottom: var(--space-2);
         }
 
         .stat-card {
             background: white;
-            padding: 20px;
-            border-radius: 12px;
+            padding: var(--space-2);
+            border-radius: var(--radius-md);
             border-left: 4px solid #3b82f6;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            box-shadow: var(--shadow-sm);
         }
 
         .stat-card .stat-label {
             font-size: 13px;
-            color: #64748b;
+            color: #475569;
             text-transform: uppercase;
             font-weight: 600;
         }
 
         .stat-card .stat-value {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
-            color: #0f172a;
+            color: #0b1220;
             margin-top: 5px;
         }
 
@@ -511,13 +647,13 @@
             position: fixed;
             bottom: 30px;
             right: 30px;
-            padding: 15px 25px;
-            border-radius: 10px;
+            padding: 12px 20px;
+            border-radius: var(--radius-md);
             font-weight: 600;
             color: white;
             display: none;
             z-index: 1000;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: var(--shadow-md);
         }
 
         .toast.success { background: #10b981; }
@@ -536,10 +672,10 @@
 
         @media (max-width: 768px) {
             body {
-                padding: 15px;
+                padding: var(--space-2);
             }
             .container {
-                padding: 15px;
+                padding: var(--space-2);
             }
             .header {
                 flex-direction: column;
@@ -577,7 +713,7 @@
 
         /* ================= DARK THEME ================= */
         body.dark-theme {
-            background: #0f0f0f;
+            background: #070b14;
         }
 
         body.dark-theme .container {
@@ -593,24 +729,6 @@
             border-bottom-color: #374151;
         }
 
-        body.dark-theme .month-selector {
-            background: #1e293b;
-        }
-
-        body.dark-theme .month-selector label {
-            color: #e5e7eb;
-        }
-
-        body.dark-theme .month-selector select {
-            background: #0f172a;
-            color: #e5e7eb;
-            border-color: #374151;
-        }
-
-        body.dark-theme .current-month-badge {
-            background: #1e3a5f;
-            color: #93c5fd;
-        }
 
         body.dark-theme .section {
             background: #1e293b;
@@ -629,7 +747,7 @@
         }
 
         body.dark-theme .stat-card .stat-label {
-            color: #9ca3af;
+            color: #cbd5e1;
         }
 
         body.dark-theme .stat-card .stat-value {
@@ -643,7 +761,7 @@
 
         body.dark-theme .salary-month-card:hover {
             border-color: #60a5fa;
-            box-shadow: 0 4px 12px rgba(96,165,250,0.2);
+            box-shadow: 0 6px 14px rgba(96,165,250,0.14);
         }
 
         body.dark-theme .salary-month-card.active {
@@ -656,7 +774,7 @@
         }
 
         body.dark-theme .salary-month-card .salary-label {
-            color: #9ca3af;
+            color: #cbd5e1;
         }
 
         body.dark-theme .form-group label {
@@ -665,9 +783,26 @@
 
         body.dark-theme .form-group input,
         body.dark-theme .form-group select {
-            background: #0f172a;
+            background: #0d1526;
             color: #e5e7eb;
-            border-color: #374151;
+            border-color: rgba(148,163,184,0.2);
+        }
+
+        body.dark-theme .bulk-mode-hint,
+        body.dark-theme .bulk-format-note {
+            color: #94a3b8;
+        }
+
+        body.dark-theme .bulk-input-wrap textarea {
+            background: #0d1526;
+            color: #e5e7eb;
+            border-color: rgba(148,163,184,0.2);
+        }
+
+        body.dark-theme .form-group input:focus,
+        body.dark-theme .form-group select:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.18);
         }
 
         body.dark-theme .filter-bar label {
@@ -691,7 +826,7 @@
 
         body.dark-theme .center-summary {
             background: #0f172a;
-            color: #9ca3af;
+            color: #cbd5e1;
         }
 
         body.dark-theme .coach-name {
@@ -714,7 +849,7 @@
         }
 
         body.dark-theme .salary-cell .month-label {
-            color: #9ca3af;
+            color: #cbd5e1;
         }
 
         body.dark-theme .salary-cell input {
@@ -728,55 +863,50 @@
         }
 
         body.dark-theme .empty-state {
-            color: #9ca3af;
+            color: #cbd5e1;
         }
 
         body.dark-theme .toast {
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 22px rgba(0,0,0,0.45);
         }
 
-        /* ================= LIGHT THEME ================= */
-        body.light-theme {
-            background: #f1f5f9;
-        }
-
-        body.light-theme .container {
-            background: #ffffff;
-        }
     </style>
+    <link rel="stylesheet" href="/static/unified-theme.css">
+    <link rel="stylesheet" href="/static/sidebar.css">
 </head>
 <body>
+{% include '_sidebar.html' %}
 
-    <!-- Top navigation bar removed -->
-    <div class="container">
+    <div class="sb-content" style="padding: 24px;">
+<div class="container">
     <!-- Header -->
     <div class="header">
         <h1>🏋️ Coach Management</h1>
         <div class="header-actions">
-            <a href="/dashboard?month={{ month }}&year={{ year }}" class="btn btn-dark">📊 Dashboard</a>
-            <a href="/analytics?year={{ year }}" class="btn" style="background: #3b82f6; color: white;">📈 Analytics</a>
-            <a href="/leaves?year={{ year }}" class="btn" style="background: #f97316; color: white;">📅 Leaves</a>
-            <a href="/settings" class="btn" style="background: #8b5cf6; color: white;">⚙️ Settings</a>
-            <a href="/logout" class="btn btn-danger">🚪 Logout</a>
+            <a href="/dashboard?month={{ month }}&year={{ year }}" class="btn">📊 Dashboard</a>
+            <a href="/analytics?year={{ year }}" class="btn btn-primary">📈 Analytics</a>
+            <a href="/leaves?year={{ year }}" class="btn">📅 Leaves</a>
+            <a href="/settings" class="btn">⚙️ Settings</a>
+            <a href="/logout" class="btn btn-danger">Logout</a>
         </div>
     </div>
 
-    <!-- Month & Year Selector -->
-    <div class="month-selector">
-        <label>📅 Select Month:</label>
-        <select id="monthSelect" onchange="changeMonth()">
+    <!-- Filters -->
+    <div class="filter-row">
+        <span class="filter-row-label">Filters</span>
+        <select id="monthSelect" onchange="changeMonth()" title="Month">
             {% set months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] %}
             {% for m in months %}
             <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}</option>
             {% endfor %}
         </select>
-        <label>📆 Year:</label>
-        <select id="yearSelect" onchange="changeMonth()">
+        <div class="filter-divider"></div>
+        <select id="yearSelect" onchange="changeMonth()" title="Year">
             {% for y in range(2024, 2031) %}
             <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
             {% endfor %}
         </select>
-        <span class="current-month-badge">Currently viewing: {{ month }} {{ year }}</span>
+        <span class="current-month-badge">{{ month }} {{ year }}</span>
     </div>
 
     <!-- Stats Summary -->
@@ -813,12 +943,17 @@
 
     <!-- Add New Coach -->
     <div class="section">
-        <div class="section-header">
-            <h3 class="section-title">➕ Add New Coach</h3>
+        <div class="section-header" style="margin-bottom: 12px; padding-bottom: 10px;">
+            <h3 class="section-title" style="font-size: 15px;">➕ Add New Coach</h3>
         </div>
         <form method="POST" class="add-coach-form" id="addCoachForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="action" value="add_coach">
+            <input type="hidden" name="action" value="add_coach" id="addCoachActionInput">
+            <input type="hidden" name="bulk_payload" value="" id="bulkPayloadInput">
+            <div class="bulk-mode-row">
+                <button type="button" class="btn btn-secondary btn-sm" id="bulkModeToggle">Bulk Add Mode</button>
+                <span class="bulk-mode-hint" id="bulkModeHint">Single add: Name -> Salary -> Enter</span>
+            </div>
             <div class="form-group">
                 <label>Center</label>
                 <select name="center_id" required>
@@ -827,11 +962,22 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group">
-                <label>Coach Name</label>
-                <input type="text" name="name" placeholder="Enter coach name" required>
+            <div id="singleAddFields" style="display: contents;">
+                <div class="form-group">
+                    <label>Coach Name</label>
+                    <input type="text" name="name" id="coachNameInput" placeholder="Enter coach name..." required>
+                </div>
+                <div class="form-group">
+                    <label>Salary</label>
+                    <input type="number" step="0.01" min="0" name="salary" id="coachSalaryInput" placeholder="Enter salary..." required>
+                </div>
             </div>
-            <button type="submit" class="btn btn-success">➕ Add Coach</button>
+            <div class="bulk-input-wrap" id="bulkInputWrap">
+                <label for="bulkEntriesInput" style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">Bulk Entries (one per line)</label>
+                <textarea id="bulkEntriesInput" placeholder="John - 12000&#10;Rahul - 15000&#10;Amit - 10000"></textarea>
+                <div class="bulk-format-note">Format: Coach Name - Salary</div>
+            </div>
+            <button type="submit" class="btn btn-primary" id="addCoachSubmitBtn">➕ Add Coach</button>
         </form>
     </div>
 
@@ -870,11 +1016,11 @@
             <div class="center-header">
                 <span class="center-name">🏢 {{ center.name }}</span>
                 <div class="center-header-actions">
-                    <button class="toggle-details-btn" onclick="toggleCenterDetails({{ center.id }})" data-center="{{ center.id }}">
-                        <span class="toggle-icon">👁️</span>
+                    <span class="coach-count">{{ center_coaches|length }} coach{% if center_coaches|length != 1 %}es{% endif %}</span>
+                    <button type="button" class="toggle-details-btn" onclick="toggleCenterDetails({{ center.id }})" data-center="{{ center.id }}">
+                        <span class="toggle-icon">👁</span>
                         <span class="toggle-text">Show Details</span>
                     </button>
-                    <span class="coach-count">{{ center_coaches|length }} coach{% if center_coaches|length != 1 %}es{% endif %}</span>
                 </div>
             </div>
             
@@ -986,7 +1132,6 @@ function loadThemePreference() {
         const prefs = JSON.parse(saved);
         const isDark = prefs['dark-theme'] !== false;
         document.body.classList.toggle('dark-theme', isDark);
-        document.body.classList.toggle('light-theme', !isDark);
     } else {
         // Default to dark theme
         document.body.classList.add('dark-theme');
@@ -1039,7 +1184,7 @@ function toggleCenterDetails(centerId) {
     if (isVisible) {
         // Hide
         btn.classList.remove('active');
-        btn.querySelector('.toggle-icon').textContent = '👁️';
+        btn.querySelector('.toggle-icon').textContent = '👁';
         btn.querySelector('.toggle-text').textContent = 'Show Details';
         cards.forEach(card => card.classList.remove('visible'));
         grids.forEach(grid => grid.classList.remove('visible'));
@@ -1050,7 +1195,7 @@ function toggleCenterDetails(centerId) {
     } else {
         // Show
         btn.classList.add('active');
-        btn.querySelector('.toggle-icon').textContent = '🙈';
+        btn.querySelector('.toggle-icon').textContent = '👁';
         btn.querySelector('.toggle-text').textContent = 'Hide Details';
         cards.forEach(card => card.classList.add('visible'));
         grids.forEach(grid => grid.classList.add('visible'));
@@ -1110,12 +1255,175 @@ async function saveFormData(form, refreshPage = false) {
 document.addEventListener('DOMContentLoaded', function() {
     // Restore center details visibility
     restoreCenterDetailsState();
+
+    const addCoachForm = document.getElementById('addCoachForm');
+    const addCoachActionInput = document.getElementById('addCoachActionInput');
+    const bulkPayloadInput = document.getElementById('bulkPayloadInput');
+    const bulkModeToggle = document.getElementById('bulkModeToggle');
+    const bulkModeHint = document.getElementById('bulkModeHint');
+    const addCoachSubmitBtn = document.getElementById('addCoachSubmitBtn');
+    const singleAddFields = document.getElementById('singleAddFields');
+    const bulkInputWrap = document.getElementById('bulkInputWrap');
+    const bulkEntriesInput = document.getElementById('bulkEntriesInput');
+    const coachNameInput = document.getElementById('coachNameInput');
+    const coachSalaryInput = document.getElementById('coachSalaryInput');
+    let bulkModeEnabled = false;
+
+    function setBulkMode(enabled) {
+        bulkModeEnabled = enabled;
+        if (singleAddFields) {
+            singleAddFields.style.display = enabled ? 'none' : 'contents';
+        }
+        if (bulkInputWrap) {
+            bulkInputWrap.style.display = enabled ? 'block' : 'none';
+        }
+        if (addCoachActionInput) {
+            addCoachActionInput.value = enabled ? 'add_coach_bulk' : 'add_coach';
+        }
+        if (bulkPayloadInput) {
+            bulkPayloadInput.value = '';
+        }
+        if (coachNameInput) {
+            coachNameInput.required = !enabled;
+        }
+        if (coachSalaryInput) {
+            coachSalaryInput.required = !enabled;
+        }
+        if (bulkEntriesInput) {
+            bulkEntriesInput.required = enabled;
+        }
+        if (addCoachSubmitBtn) {
+            addCoachSubmitBtn.textContent = enabled ? '➕ Add Coaches' : '➕ Add Coach';
+        }
+        if (bulkModeToggle) {
+            bulkModeToggle.classList.toggle('btn-primary', enabled);
+            bulkModeToggle.classList.toggle('btn-secondary', !enabled);
+            bulkModeToggle.textContent = enabled ? 'Single Add Mode' : 'Bulk Add Mode';
+        }
+        if (bulkModeHint) {
+            bulkModeHint.textContent = enabled
+                ? 'Bulk add: one line per coach in Name - Salary format'
+                : 'Single add: Name -> Salary -> Enter';
+        }
+        if (enabled) {
+            if (bulkEntriesInput) {
+                bulkEntriesInput.focus();
+            }
+        } else if (coachNameInput) {
+            coachNameInput.focus();
+        }
+    }
+
+    function parseBulkLines(rawText) {
+        const validEntries = [];
+        const invalidLineNumbers = [];
+        const lines = String(rawText || '').split(/\r?\n/);
+        const lineRegex = /^(.+?)\s*-\s*(\d+(?:\.\d{1,2})?)$/;
+
+        lines.forEach((line, index) => {
+            const value = line.trim();
+            if (!value) {
+                return;
+            }
+            const match = value.match(lineRegex);
+            if (!match) {
+                invalidLineNumbers.push(index + 1);
+                return;
+            }
+            const name = match[1].trim();
+            const salary = Number(match[2]);
+            if (!name || !Number.isFinite(salary) || salary < 0) {
+                invalidLineNumbers.push(index + 1);
+                return;
+            }
+            validEntries.push({ name, salary });
+        });
+
+        return { validEntries, invalidLineNumbers };
+    }
+
+    if (coachNameInput) {
+        coachNameInput.focus();
+    }
+
+    if (coachNameInput && coachSalaryInput) {
+        coachNameInput.addEventListener('keydown', function(e) {
+            if (bulkModeEnabled) {
+                return;
+            }
+            if ((e.key === 'Enter' || e.key === 'Tab') && this.value.trim()) {
+                e.preventDefault();
+                coachSalaryInput.focus();
+                coachSalaryInput.select();
+            }
+        });
+
+        coachSalaryInput.addEventListener('keydown', function(e) {
+            if (bulkModeEnabled) {
+                return;
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (addCoachForm && coachNameInput.value.trim() && this.value !== '') {
+                    addCoachForm.requestSubmit();
+                }
+            }
+        });
+    }
+
+    if (bulkModeToggle) {
+        bulkModeToggle.addEventListener('click', function() {
+            setBulkMode(!bulkModeEnabled);
+        });
+    }
+
+    if (bulkEntriesInput) {
+        bulkEntriesInput.addEventListener('keydown', function(e) {
+            if (bulkModeEnabled && (e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                addCoachForm.requestSubmit();
+            }
+        });
+    }
     
     // Add Coach form
-    document.getElementById('addCoachForm').addEventListener('submit', async function(e) {
+    addCoachForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        await saveFormData(this, true);
+
+        const selectedCenterValue = this.querySelector('select[name="center_id"]')?.value || '';
+
+        if (bulkModeEnabled) {
+            const parsed = parseBulkLines(bulkEntriesInput ? bulkEntriesInput.value : '');
+            if (!parsed.validEntries.length) {
+                showToast('Format error. Use: Coach Name - Salary', 'error');
+                if (bulkEntriesInput) {
+                    bulkEntriesInput.focus();
+                }
+                return;
+            }
+
+            if (parsed.invalidLineNumbers.length) {
+                showToast(`Skipping invalid lines: ${parsed.invalidLineNumbers.join(', ')}`, 'saving');
+            }
+
+            if (bulkPayloadInput) {
+                bulkPayloadInput.value = JSON.stringify(parsed.validEntries);
+            }
+        }
+
+        await saveFormData(this, false);
         this.reset();
+
+        const centerSelect = this.querySelector('select[name="center_id"]');
+        if (centerSelect && selectedCenterValue) {
+            centerSelect.value = selectedCenterValue;
+        }
+
+        if (bulkModeEnabled && bulkEntriesInput) {
+            bulkEntriesInput.focus();
+        } else if (coachNameInput) {
+            coachNameInput.focus();
+        }
     });
     
     // Edit Coach forms
@@ -1128,7 +1436,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Salary inputs - auto-save on change
-    document.querySelectorAll('input[name="salary"]').forEach(input => {
+    document.querySelectorAll('.salary-cell input[name="salary"]').forEach(input => {
         input.addEventListener('change', async function() {
             const form = this.closest('form');
             const cell = this.closest('.salary-cell');
@@ -1155,14 +1463,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Global night mode sync: applies theme from localStorage and listens for changes
 function applyThemeFromStorage() {
     try {
-        const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
-        if (prefs.theme === 'light') {
-            document.body.classList.add('light-theme');
-            document.body.classList.remove('dark-theme');
-        } else {
-            document.body.classList.add('dark-theme');
-            document.body.classList.remove('light-theme');
-        }
+        document.body.classList.add('dark-theme');
     } catch(e) {}
 }
 applyThemeFromStorage();
@@ -1171,5 +1472,7 @@ window.addEventListener('storage', function(e) {
 });
 </script>
 
+</div><!-- /.sb-content -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>

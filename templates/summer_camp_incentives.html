@@ -1,0 +1,2059 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summer Camp - Academy Dashboard</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+        :root {
+            --bg: #050816;
+            --bg-soft: #0a1024;
+            --panel: rgba(10, 18, 38, 0.86);
+            --panel-strong: rgba(15, 25, 52, 0.96);
+            --border: rgba(124, 151, 197, 0.18);
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --heading: #f8fafc;
+            --accent: #38bdf8;
+            --accent-strong: #0284c7;
+            --green: #22c55e;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --shadow: 0 24px 64px rgba(2, 8, 23, 0.34);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Outfit', 'Segoe UI', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(14, 165, 233, 0.15), transparent 26%),
+                radial-gradient(circle at 85% 10%, rgba(56, 189, 248, 0.12), transparent 22%),
+                linear-gradient(180deg, #040814 0%, #091024 100%);
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image: linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: linear-gradient(180deg, rgba(255, 255, 255, 0.6), transparent 88%);
+        }
+
+        /* sidebar handled by global sidebar.css */
+
+        .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            padding: 18px 12px;
+            background: rgba(5, 11, 27, 0.92);
+            border-right: 1px solid rgba(59, 130, 246, 0.18);
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .brand {
+            font-family: 'Space Grotesk', 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #dbeafe;
+            letter-spacing: 0.01em;
+        }
+
+        .sidebar-toggle {
+            border: 0;
+            background: rgba(30, 41, 59, 0.7);
+            color: #dbeafe;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 12px;
+            margin: 4px 0;
+            color: #cbd5e1;
+            text-decoration: none;
+            border-radius: 12px;
+            transition: background-color 0.18s ease, transform 0.18s ease, color 0.18s ease;
+            white-space: nowrap;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(59, 130, 246, 0.3));
+            color: #ffffff;
+            transform: translateX(2px);
+        }
+
+        .layout.sidebar-collapsed .brand,
+        .layout.sidebar-collapsed .sidebar-text {
+            display: none;
+        }
+
+        .layout.sidebar-collapsed .nav-link {
+            justify-content: center;
+            padding-inline: 0;
+        }
+
+        .main {
+            padding: 28px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .eyebrow {
+            margin: 0 0 8px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: #7dd3fc;
+        }
+
+        .title {
+            margin: 0;
+            font-family: 'Space Grotesk', 'Outfit', sans-serif;
+            font-size: clamp(28px, 4vw, 40px);
+            color: var(--heading);
+        }
+
+        .subtitle {
+            margin: 8px 0 0;
+            max-width: 760px;
+            color: var(--muted);
+            line-height: 1.55;
+            font-size: 14px;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .filter,
+        .link-chip {
+            border: 1px solid var(--border);
+            background: rgba(10, 18, 38, 0.78);
+            color: var(--text);
+            border-radius: 14px;
+            padding: 11px 14px;
+            font: inherit;
+            font-weight: 600;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .link-chip {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-grid {
+            display: grid;
+                grid-template-columns: repeat(3, minmax(180px, 1fr));
+                gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .summary-card,
+        .note-panel,
+        .table-panel {
+            background: linear-gradient(180deg, rgba(10, 18, 38, 0.96), rgba(8, 14, 32, 0.92));
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+        }
+
+        .summary-card {
+                padding: 18px 18px 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card::after {
+            content: '';
+            position: absolute;
+            inset: auto -30px -40px auto;
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.2), transparent 68%);
+        }
+
+        .card-label {
+            display: block;
+              font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #7dd3fc;
+              margin-bottom: 10px;
+        }
+
+        .card-value {
+              font-size: clamp(24px, 3vw, 34px);
+            font-weight: 800;
+            color: #f8fafc;
+        }
+
+        .card-meta {
+              margin-top: 8px;
+            color: var(--muted);
+              font-size: 13px;
+        }
+
+        .note-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+        }
+
+        .note-panel strong {
+            color: #f8fafc;
+        }
+
+        .note-panel p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.55;
+            font-size: 14px;
+        }
+
+        .base-months-filter {
+            position: relative;
+            min-width: 210px;
+        }
+
+        .base-months-toggle {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: rgba(10, 18, 38, 0.78);
+            color: var(--text);
+            border-radius: 14px;
+            min-height: 46px;
+            padding: 11px 38px 11px 14px;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            position: relative;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .base-months-toggle::after {
+            content: '▾';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+            font-size: 12px;
+        }
+
+        .base-months-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 260px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: rgba(8, 14, 32, 0.98);
+            box-shadow: 0 18px 48px rgba(2, 8, 23, 0.5);
+            padding: 10px;
+            z-index: 50;
+            display: none;
+        }
+
+        .base-months-menu.open {
+            display: block;
+        }
+
+        .base-months-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(124, 151, 197, 0.2);
+        }
+
+        .base-months-action-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .base-months-action-btn {
+            border: 0;
+            background: transparent;
+            color: #7dd3fc;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .base-months-checklist {
+            max-height: 228px;
+            overflow-y: auto;
+            display: grid;
+            gap: 6px;
+        }
+
+        .base-month-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 4px;
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-size: 13px;
+        }
+
+        .base-month-option:hover {
+            background: rgba(30, 41, 59, 0.65);
+        }
+
+        .base-month-option input {
+            accent-color: #38bdf8;
+            width: 14px;
+            height: 14px;
+        }
+
+        .year-filter {
+            min-width: 108px;
+            min-height: 46px;
+            padding-inline: 14px;
+        }
+
+        .table-panel {
+            padding: 16px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .panel-title {
+            margin: 0;
+            font-size: 18px;
+            color: #f8fafc;
+        }
+
+        .panel-subtitle {
+            margin: 6px 0 0;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .save-state {
+            padding: 10px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border: 1px solid transparent;
+        }
+
+        .save-state.saved {
+            background: rgba(34, 197, 94, 0.14);
+            color: #bbf7d0;
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .save-state.pending,
+        .save-state.saving {
+            background: rgba(245, 158, 11, 0.14);
+            color: #fde68a;
+            border-color: rgba(245, 158, 11, 0.32);
+        }
+
+        .save-state.error {
+            background: rgba(239, 68, 68, 0.14);
+            color: #fecaca;
+            border-color: rgba(239, 68, 68, 0.32);
+        }
+
+        .btn-export {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(34, 197, 94, 0.35);
+            background: rgba(34, 197, 94, 0.12);
+            color: #bbf7d0;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+        }
+
+        .btn-export:hover {
+            background: rgba(34, 197, 94, 0.22);
+            border-color: rgba(34, 197, 94, 0.6);
+            transform: translateY(-1px);
+        }
+
+        .btn-export:active {
+            transform: translateY(0);
+        }
+
+        .btn-restore {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.42);
+            background: rgba(148, 163, 184, 0.12);
+            color: #e2e8f0;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+        }
+
+        .btn-restore:hover {
+            background: rgba(148, 163, 184, 0.2);
+            border-color: rgba(148, 163, 184, 0.65);
+            transform: translateY(-1px);
+        }
+
+        .btn-restore:active {
+            transform: translateY(0);
+        }
+
+        .count-chip {
+            padding: 10px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            background: rgba(56, 189, 248, 0.12);
+            color: #bae6fd;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            white-space: nowrap;
+        }
+
+        .btn-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            background: rgba(56, 189, 248, 0.12);
+            color: #bae6fd;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+        }
+
+        .btn-add:hover {
+            background: rgba(56, 189, 248, 0.24);
+            border-color: rgba(56, 189, 248, 0.62);
+            transform: translateY(-1px);
+        }
+
+        .btn-add:active {
+            transform: translateY(0);
+        }
+
+        .remove-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            border: 1px solid rgba(248, 113, 113, 0.35);
+            background: rgba(248, 113, 113, 0.12);
+            color: #fecaca;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            transition: transform 0.18s ease, background-color 0.18s ease;
+        }
+
+        .remove-btn:hover {
+            background: rgba(248, 113, 113, 0.22);
+            transform: translateY(-1px);
+        }
+
+        .remove-btn:active {
+            transform: translateY(0);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.76);
+            backdrop-filter: blur(6px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+            padding: 16px;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-card {
+            width: min(480px, 100%);
+            background: linear-gradient(180deg, rgba(10, 18, 38, 0.98), rgba(8, 14, 32, 0.97));
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 18px;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 20px;
+            color: var(--heading);
+        }
+
+        .modal-subtitle {
+            margin: 6px 0 16px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .modal-select {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: rgba(10, 18, 38, 0.78);
+            color: var(--text);
+            border-radius: 14px;
+            padding: 11px 14px;
+            font: inherit;
+            font-weight: 600;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn-secondary {
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(15, 23, 42, 0.72);
+            color: #cbd5e1;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            padding: 10px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.55);
+            background: rgba(56, 189, 248, 0.18);
+            color: #e0f2fe;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-primary:disabled {
+            cursor: not-allowed;
+            opacity: 0.45;
+        }
+
+        .toast-wrap {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            z-index: 60;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            min-width: 260px;
+            max-width: 420px;
+            border-radius: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.42);
+            background: rgba(8, 15, 34, 0.94);
+            color: #dbeafe;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 11px 13px;
+            box-shadow: 0 14px 36px rgba(2, 6, 23, 0.45);
+            animation: toastIn 220ms ease;
+        }
+
+        .toast.error {
+            border-color: rgba(248, 113, 113, 0.45);
+            color: #fecaca;
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 1140px;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            padding: 14px 14px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #93c5fd;
+            text-align: left;
+            background: rgba(15, 23, 42, 0.96);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        }
+
+        thead th.sortable-th {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        thead th.sortable-th::after {
+            content: '⇅';
+            margin-left: 6px;
+            font-size: 11px;
+            color: rgba(147, 197, 253, 0.55);
+        }
+
+        thead th.sortable-th[data-sort-direction='asc']::after {
+            content: '↑';
+            color: #bfdbfe;
+        }
+
+        thead th.sortable-th[data-sort-direction='desc']::after {
+            content: '↓';
+            color: #bfdbfe;
+        }
+
+        tbody td {
+            padding: 16px 14px;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+        }
+
+        tfoot td {
+            padding: 14px 14px;
+            border-top: 1px solid rgba(125, 211, 252, 0.26);
+            background: rgba(8, 15, 34, 0.98);
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .table-total-label {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #7dd3fc;
+        }
+
+        .table-total-amount {
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: 'tnum';
+        }
+
+        tbody tr {
+            transition: background-color 0.18s ease, transform 0.18s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(15, 23, 42, 0.54);
+        }
+
+        .center-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .center-caption {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .currency-cell,
+        .percent-cell {
+            font-variant-numeric: tabular-nums;
+            font-feature-settings: 'tnum';
+        }
+
+        .summer-input {
+            width: min(180px, 100%);
+            border: 1px solid rgba(125, 211, 252, 0.22);
+            background: rgba(8, 15, 34, 0.96);
+            border-radius: 14px;
+            padding: 12px 16px;
+            color: #f8fafc;
+            font: inherit;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            caret-color: #67e8f9;
+            outline: none;
+            transition: border-color 0.24s ease, box-shadow 0.3s ease, transform 0.24s ease, background-color 0.24s ease, color 0.24s ease;
+        }
+
+        .summer-input:focus {
+            border-color: rgba(56, 189, 248, 0.7);
+            background: rgba(14, 25, 50, 0.98);
+            color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18), 0 0 18px rgba(56, 189, 248, 0.22);
+            transform: translateY(-1px);
+        }
+
+        .achievement-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .achievement-value {
+            font-size: 18px;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+
+        .status-pill {
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .status-pill.green {
+            background: rgba(34, 197, 94, 0.14);
+            color: #bbf7d0;
+        }
+
+        .status-pill.yellow {
+            background: rgba(245, 158, 11, 0.14);
+            color: #fde68a;
+        }
+
+        .status-pill.red {
+            background: rgba(239, 68, 68, 0.14);
+            color: #fecaca;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 12px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 0;
+            height: 100%;
+            border-radius: inherit;
+            transition: width 0.65s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease;
+            box-shadow: 0 0 18px rgba(255, 255, 255, 0.08);
+        }
+
+        .progress-fill.green { background: linear-gradient(90deg, #16a34a, #22c55e); }
+        .progress-fill.yellow { background: linear-gradient(90deg, #d97706, #f59e0b); }
+        .progress-fill.red { background: linear-gradient(90deg, #dc2626, #ef4444); }
+
+        .achievement-meta {
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .threshold-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+
+        .threshold-hint::before {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f59e0b, #fcd34d);
+        }
+
+        tbody tr.above-target {
+            background: rgba(34, 197, 94, 0.07);
+            border-left: 3px solid rgba(34, 197, 94, 0.55);
+        }
+
+        tbody tr.above-target:hover {
+            background: rgba(34, 197, 94, 0.12);
+        }
+
+        @media (max-width: 1180px) {
+            .summary-grid {
+                    grid-template-columns: repeat(2, minmax(180px, 1fr));
+            }
+        }
+
+        @media (max-width: 920px) {
+            .layout,
+            .layout.sidebar-collapsed {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+                height: auto;
+            }
+
+            .layout.sidebar-collapsed .brand,
+            .layout.sidebar-collapsed .sidebar-text {
+                display: initial;
+            }
+
+            .layout.sidebar-collapsed .nav-link {
+                justify-content: flex-start;
+                padding-inline: 12px;
+            }
+
+            .topbar,
+            .note-panel,
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .main {
+                padding: 18px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/static/sidebar.css">
+</head>
+<body>
+{% include '_sidebar.html' %}
+<main class="main sb-content">
+        <input type="hidden" id="csrfToken" value="{{ csrf_token() }}">
+
+        <section class="topbar">
+            <div>
+                <p class="eyebrow"></p>
+                <h1 class="title">Summer Camp</h1>
+            </div>
+            <div class="topbar-actions">
+                <select id="yearSelect" class="filter year-filter" onchange="updateFilters()">
+                    {% for item in range(2023, 2031) %}
+                    <option value="{{ item }}" {% if item == year %}selected{% endif %}>{{ item }}</option>
+                    {% endfor %}
+                </select>
+                <div class="base-months-filter">
+                    <button type="button" id="baseMonthsToggle" class="base-months-toggle" aria-expanded="false" aria-haspopup="true">Select Base Months</button>
+                    <div id="baseMonthsMenu" class="base-months-menu" role="menu" aria-label="Select base target months">
+                        <div class="base-months-actions">
+                            <span style="font-size:12px;color:#94a3b8;font-weight:600;">Months</span>
+                            <div class="base-months-action-group">
+                                <button type="button" id="baseMonthsSelectAll" class="base-months-action-btn">Select All</button>
+                                <button type="button" id="baseMonthsApply" class="base-months-action-btn">Apply</button>
+                            </div>
+                        </div>
+                        <div id="baseMonthsChecklist" class="base-months-checklist"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="summary-grid">
+            <article class="summary-card">
+                <span class="card-label">Total Summer Camp Revenue</span>
+                <div class="card-value" id="totalSummerRevenue">₹{{ '{:,.2f}'.format(summary.total_summer_revenue) }}</div>
+                <div class="card-meta">Combined input across all centers</div>
+            </article>
+            <article class="summary-card">
+                <span class="card-label">Total Incentive Pool</span>
+                <div class="card-value" id="totalIncentivePool">₹{{ '{:,.2f}'.format(summary.total_incentive_pool) }}</div>
+                <div class="card-meta">10% of the amount exceeding base target from Total Revenue</div>
+            </article>
+            <article class="summary-card">
+                <span class="card-label">Average Target Achievement</span>
+                <div class="card-value" id="averageTargetAchievement">{{ summary.average_target_achievement }}%</div>
+                <div class="card-meta" id="averageTargetAchievementMeta">Dashboard revenue achievement measured against selected base target months</div>
+            </article>
+        </section>
+
+        <section class="table-panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">Center-Wise Summer Camp Revenue</h2>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div id="visibleCenterCount" class="count-chip">0 / 0 centers</div>
+                    <button type="button" class="btn-add" id="openAddCenterModal">+ Add Center</button>
+                    <button type="button" class="btn-restore" id="restoreAllCenters">Restore All</button>
+                    <button type="button" class="btn-export" id="exportToExcelBtn">&#10515; Export to Excel</button>
+                    <div id="saveState" class="save-state saved">All changes saved</div>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Center</th>
+                            <th id="baseTargetHeader" class="sortable-th" data-sort-key="base_target" title="Calculated from selected months">Base Target (100%)</th>
+                            <th>80% Target</th>
+                            <th class="sortable-th" data-sort-key="dashboard_revenue">Revenue</th>
+                            <th class="sortable-th" data-sort-key="summer_revenue">Summer Camp Revenue</th>
+                            <th>Total Revenue</th>
+                            <th class="sortable-th" data-sort-key="incentive_amount">Incentive Amount</th>
+                            <th class="sortable-th" data-sort-key="achievement_pct">% Achievement</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summerCampTableBody">
+                        {% for row in rows %}
+                        <tr
+                            class="data-row"
+                            data-center-id="{{ row.center_id }}"
+                            data-center="{{ row.center }}"
+                            data-base-target="{{ row.base_target }}"
+                            data-dashboard-revenue="{{ row.dashboard_revenue }}">
+                            <td>
+                                <div class="center-name">{{ row.center }}</div>
+                            </td>
+                            <td class="currency-cell base-target">₹{{ '{:,.2f}'.format(row.base_target) }}</td>
+                            <td class="currency-cell threshold-target">₹{{ '{:,.2f}'.format(row.threshold_target) }}</td>
+                            <td class="currency-cell dashboard-revenue">₹{{ '{:,.2f}'.format(row.dashboard_revenue) }}</td>
+                            <td>
+                                <input
+                                    type="number"
+                                    class="summer-input"
+                                    min="0"
+                                    step="0.01"
+                                    value="{{ '%.2f'|format(row.summer_revenue) }}"
+                                    aria-label="Summer camp revenue for {{ row.center }}">
+                            </td>
+                            <td class="currency-cell total-revenue">₹{{ '{:,.2f}'.format(row.dashboard_revenue + row.summer_revenue) }}</td>
+                            <td class="currency-cell incentive-amount">₹{{ '{:,.2f}'.format(row.incentive_amount) }}</td>
+                            <td>
+                                <div class="achievement-header">
+                                    <span class="achievement-value">{{ row.achievement_pct }}%</span>
+                                    <span class="status-pill {{ row.status }}">{{ row.status_label }}</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class="progress-fill {{ row.status }}"></div>
+                                </div>
+                                <div class="achievement-meta">
+                                    <span>Total revenue vs base target (Revenue + Summer)</span>
+                                    <span>Width capped visually at 100%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <button type="button" class="remove-btn" data-remove-center="{{ row.center }}" aria-label="Remove {{ row.center }} from table">✕</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td class="table-total-label">Total</td>
+                            <td class="table-total-amount" id="tableTotalBaseTarget">₹0.00</td>
+                            <td class="table-total-amount" id="tableTotalThresholdTarget">₹0.00</td>
+                            <td class="table-total-amount" id="tableTotalRevenue">₹0.00</td>
+                            <td class="table-total-amount" id="tableTotalSummerRevenue">₹0.00</td>
+                            <td class="table-total-amount" id="tableTotalCombinedRevenue">₹0.00</td>
+                            <td class="table-total-amount" id="tableTotalIncentive">₹0.00</td>
+                            <td class="table-total-amount" id="tableTotalAchievement">0.0%</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div class="modal-overlay" id="addCenterModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="addCenterTitle">
+        <h3 class="modal-title" id="addCenterTitle">Add Center</h3>
+        <p class="modal-subtitle">Select a center from the database that is not currently shown in this table.</p>
+        <select id="addCenterSelect" class="modal-select"></select>
+        <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="cancelAddCenter">Cancel</button>
+            <button type="button" class="btn-primary" id="confirmAddCenter">Add Center</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="true"></div>
+
+<script id="summerCampCentersData" type="application/json">{{ all_centers | tojson }}</script>
+<script id="summerCampBaseTargetConfig" type="application/json">{{ {'selected': selected_base_target_months, 'default': default_base_target_months, 'active_month': month, 'all_months': all_months} | tojson }}</script>
+<script>
+(() => {
+    const centersDataElement = document.getElementById('summerCampCentersData');
+    const baseTargetConfigElement = document.getElementById('summerCampBaseTargetConfig');
+    const allCenters = JSON.parse(centersDataElement ? centersDataElement.textContent : '[]');
+    const baseTargetConfig = JSON.parse(baseTargetConfigElement ? baseTargetConfigElement.textContent : '{}');
+    const csrfToken = document.getElementById('csrfToken').value;
+    const yearSelect = document.getElementById('yearSelect');
+    const baseMonthsToggle = document.getElementById('baseMonthsToggle');
+    const baseMonthsMenu = document.getElementById('baseMonthsMenu');
+    const baseMonthsChecklist = document.getElementById('baseMonthsChecklist');
+    const baseMonthsSelectAll = document.getElementById('baseMonthsSelectAll');
+    const baseMonthsApply = document.getElementById('baseMonthsApply');
+    const baseTargetHeaderEl = document.getElementById('baseTargetHeader');
+    const averageTargetAchievementMetaEl = document.getElementById('averageTargetAchievementMeta');
+    const tableBody = document.getElementById('summerCampTableBody');
+    const addCenterModal = document.getElementById('addCenterModal');
+    const addCenterSelect = document.getElementById('addCenterSelect');
+    const confirmAddCenterBtn = document.getElementById('confirmAddCenter');
+    const saveStateEl = document.getElementById('saveState');
+    const filterControls = [yearSelect, baseMonthsToggle, baseMonthsSelectAll, baseMonthsApply];
+    const LIVE_SAVE_DELAY_MS = 1200;
+    const activeDataMonth = baseTargetConfig.active_month;
+    const allCalendarMonths = Array.isArray(baseTargetConfig.all_months) ? baseTargetConfig.all_months : [];
+    const baseTargetDefaultMonths = Array.isArray(baseTargetConfig.default) ? baseTargetConfig.default : ['April', 'May'];
+    const baseTargetInitialMonths = Array.isArray(baseTargetConfig.selected) ? baseTargetConfig.selected : baseTargetDefaultMonths;
+
+    const state = {
+        allCenters,
+        saveTimer: null,
+        saveRequestController: null,
+        saveDelayMs: LIVE_SAVE_DELAY_MS,
+        baseTargetMonths: baseTargetInitialMonths,
+        isSaving: false,
+        isDirty: false,
+        lastSavedRows: [],
+        lastSavedSummary: {
+            total_summer_revenue: 0,
+            total_incentive_pool: 0,
+            average_target_achievement: 0,
+        },
+        sort: {
+            key: null,
+            direction: 'asc',
+        },
+    };
+
+    function logActionError(action, error) {
+        console.error('[Summer Camp] ' + action + ' failed:', error);
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function showToast(message, isError) {
+        const wrap = document.getElementById('toastWrap');
+        const toast = document.createElement('div');
+        toast.className = 'toast' + (isError ? ' error' : '');
+        toast.textContent = message;
+        wrap.appendChild(toast);
+        setTimeout(() => {
+            toast.remove();
+        }, 2600);
+    }
+
+    function setSaveState(status, text) {
+        saveStateEl.className = 'save-state ' + status;
+        saveStateEl.textContent = text;
+    }
+
+    function setFilterControlsDisabled(isDisabled) {
+        filterControls.forEach((control) => {
+            if (control) {
+                control.disabled = isDisabled;
+            }
+        });
+        Array.from(baseMonthsChecklist.querySelectorAll('input[type="checkbox"][data-month]')).forEach((checkbox) => {
+            checkbox.disabled = isDisabled;
+        });
+    }
+
+    function toNumber(value, fallback = 0) {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function formatCurrency(value) {
+        return '₹' + toNumber(value).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    }
+
+    function normalizeName(value) {
+        return String(value || '').trim().toLowerCase();
+    }
+
+    function getCurrentPeriod() {
+        return {
+            month: activeDataMonth,
+            year: toNumber(yearSelect.value, new Date().getFullYear()),
+        };
+    }
+
+    function sanitizeBaseTargetMonths(months) {
+        const availableMonths = allCalendarMonths;
+        const candidates = Array.isArray(months) ? months : [];
+        const seen = new Set();
+        const normalized = [];
+
+        availableMonths.forEach((month) => {
+            if (candidates.includes(month) && !seen.has(month)) {
+                seen.add(month);
+                normalized.push(month);
+            }
+        });
+
+        if (normalized.length) {
+            return normalized;
+        }
+
+        const fallback = [];
+        availableMonths.forEach((month) => {
+            if (baseTargetDefaultMonths.includes(month)) {
+                fallback.push(month);
+            }
+        });
+        return fallback.length ? fallback : availableMonths.slice(0, 1);
+    }
+
+    function getBaseTargetStorageKey(year) {
+        return 'summerCampBaseTargetMonths:' + year;
+    }
+
+    function readPersistedBaseTargetMonths(year) {
+        try {
+            const raw = localStorage.getItem(getBaseTargetStorageKey(year));
+            if (!raw) {
+                return [];
+            }
+            return sanitizeBaseTargetMonths(JSON.parse(raw));
+        } catch (_error) {
+            return [];
+        }
+    }
+
+    function persistBaseTargetMonths(year, months) {
+        const sanitized = sanitizeBaseTargetMonths(months);
+        localStorage.setItem(getBaseTargetStorageKey(year), JSON.stringify(sanitized));
+    }
+
+    function getCurrentBaseTargetMonths() {
+        return sanitizeBaseTargetMonths(state.baseTargetMonths);
+    }
+
+    function formatMonthsLabel(months) {
+        const safeMonths = sanitizeBaseTargetMonths(months);
+        return safeMonths.map((month) => month.slice(0, 3)).join(' + ');
+    }
+
+    function formatMonthsInline(months) {
+        const safeMonths = sanitizeBaseTargetMonths(months);
+        if (safeMonths.length <= 2) {
+            return safeMonths.map((month) => month.slice(0, 3)).join(', ');
+        }
+        const firstTwo = safeMonths.slice(0, 2).map((month) => month.slice(0, 3)).join(', ');
+        return firstTwo + ' +' + String(safeMonths.length - 2);
+    }
+
+    function syncBaseTargetHeader(months) {
+        const label = formatMonthsLabel(months);
+        baseTargetHeaderEl.textContent = 'Base Target (' + label + ')';
+        baseTargetHeaderEl.setAttribute('title', 'Calculated from selected months');
+        averageTargetAchievementMetaEl.textContent = 'Dashboard revenue achievement measured against the selected ' + label + ' base target';
+    }
+
+    function applyServerBaseTargetMonths(months, year) {
+        const safeMonths = sanitizeBaseTargetMonths(months);
+        state.baseTargetMonths = safeMonths;
+        persistBaseTargetMonths(year, safeMonths);
+        applyBaseTargetSelect(safeMonths);
+        syncBaseTargetHeader(safeMonths);
+        baseMonthsToggle.textContent = formatMonthsInline(safeMonths);
+    }
+
+    function applyBaseTargetSelect(months) {
+        const safeMonths = sanitizeBaseTargetMonths(months);
+        Array.from(baseMonthsChecklist.querySelectorAll('input[type="checkbox"][data-month]')).forEach((checkbox) => {
+            checkbox.checked = safeMonths.includes(checkbox.value);
+        });
+    }
+
+    function renderBaseMonthsChecklist() {
+        const availableMonths = allCalendarMonths;
+        baseMonthsChecklist.innerHTML = availableMonths.map((month) => (
+            '<label class="base-month-option">'
+            + '<input type="checkbox" data-month="1" value="' + escapeHtml(month) + '">'
+            + '<span>' + escapeHtml(month) + '</span>'
+            + '</label>'
+        )).join('');
+    }
+
+    function getStatusFromAchievement(achievementPct) {
+        if (achievementPct >= 100) {
+            return { status: 'green', label: 'Above 100%' };
+        }
+        if (achievementPct >= 80) {
+            return { status: 'yellow', label: '80-99% range' };
+        }
+        return { status: 'red', label: 'Below 80%' };
+    }
+
+    function calculateRow(row) {
+        const baseTarget = toNumber(row.base_target);
+        const dashboardRevenue = toNumber(row.dashboard_revenue);
+        const summerRevenue = Math.max(0, toNumber(row.summer_revenue));
+        const totalRevenue = toNumber((dashboardRevenue + summerRevenue).toFixed(2));
+        const thresholdTarget = toNumber((baseTarget * 0.8).toFixed(2));
+        const excessAmount = toNumber(Math.max(0, totalRevenue - baseTarget).toFixed(2));
+        const incentiveAmount = toNumber((excessAmount * 0.1).toFixed(2));
+        const achievementPct = baseTarget > 0 ? toNumber(((totalRevenue / baseTarget) * 100).toFixed(1)) : 0;
+        const statusData = getStatusFromAchievement(achievementPct);
+
+        return {
+            center_id: toNumber(row.center_id),
+            center: row.center,
+            base_target: toNumber(baseTarget.toFixed(2)),
+            threshold_target: thresholdTarget,
+            dashboard_revenue: toNumber(dashboardRevenue.toFixed(2)),
+            summer_revenue: toNumber(summerRevenue.toFixed(2)),
+            total_revenue: totalRevenue,
+            incentive_amount: incentiveAmount,
+            achievement_pct: achievementPct,
+            status: statusData.status,
+            status_label: statusData.label,
+            progress_width: Math.max(0, Math.min(achievementPct, 100)),
+        };
+    }
+
+    function getRowsFromDom() {
+        return Array.from(tableBody.querySelectorAll('tr.data-row')).map((tr) => {
+            const summerInput = tr.querySelector('.summer-input');
+            return calculateRow({
+                center_id: tr.dataset.centerId,
+                center: tr.dataset.center,
+                base_target: tr.dataset.baseTarget,
+                dashboard_revenue: tr.dataset.dashboardRevenue,
+                summer_revenue: summerInput ? summerInput.value : 0,
+            });
+        });
+    }
+
+    function updateSummary(summary) {
+        document.getElementById('totalSummerRevenue').textContent = formatCurrency(summary.total_summer_revenue || 0);
+        document.getElementById('totalIncentivePool').textContent = formatCurrency(summary.total_incentive_pool || 0);
+        document.getElementById('averageTargetAchievement').textContent = toNumber(summary.average_target_achievement).toFixed(1) + '%';
+    }
+
+    function updateFooterTotals(rows) {
+        let totalBase = 0;
+        let totalThreshold = 0;
+        let totalRevenue = 0;
+        let totalSummer = 0;
+        let totalCombined = 0;
+        let totalIncentive = 0;
+        let totalAchievement = 0;
+
+        rows.forEach((row) => {
+            totalBase += toNumber(row.base_target);
+            totalThreshold += toNumber(row.threshold_target);
+            totalRevenue += toNumber(row.dashboard_revenue);
+            totalSummer += toNumber(row.summer_revenue);
+            totalCombined += toNumber(row.total_revenue);
+            totalIncentive += toNumber(row.incentive_amount);
+            totalAchievement += toNumber(row.achievement_pct);
+        });
+
+        const avgAchievement = rows.length ? (totalAchievement / rows.length) : 0;
+
+        document.getElementById('tableTotalBaseTarget').textContent = formatCurrency(totalBase);
+        document.getElementById('tableTotalThresholdTarget').textContent = formatCurrency(totalThreshold);
+        document.getElementById('tableTotalRevenue').textContent = formatCurrency(totalRevenue);
+        document.getElementById('tableTotalSummerRevenue').textContent = formatCurrency(totalSummer);
+        document.getElementById('tableTotalCombinedRevenue').textContent = formatCurrency(totalCombined);
+        document.getElementById('tableTotalIncentive').textContent = formatCurrency(totalIncentive);
+        document.getElementById('tableTotalAchievement').textContent = avgAchievement.toFixed(1) + '%';
+    }
+
+    function updateVisibleCenterCount(rows) {
+        const total = state.allCenters.length;
+        const active = rows.length;
+        document.getElementById('visibleCenterCount').textContent = active + ' / ' + total + ' centers';
+    }
+
+    function refreshProgressBars() {
+        document.querySelectorAll('.progress-fill[data-progress-width]').forEach((node) => {
+            const width = toNumber(node.getAttribute('data-progress-width'));
+            requestAnimationFrame(() => {
+                node.style.width = Math.max(0, Math.min(width, 100)) + '%';
+            });
+        });
+    }
+
+    function rowMarkup(row) {
+        const computed = calculateRow(row);
+        return `
+            <tr
+                class="data-row"
+                data-center-id="${computed.center_id}"
+                data-center="${escapeHtml(computed.center)}"
+                data-base-target="${computed.base_target}"
+                data-dashboard-revenue="${computed.dashboard_revenue}">
+                <td>
+                    <div class="center-name">${escapeHtml(computed.center)}</div>
+                </td>
+                <td class="currency-cell base-target">${formatCurrency(computed.base_target)}</td>
+                <td class="currency-cell threshold-target">${formatCurrency(computed.threshold_target)}</td>
+                <td class="currency-cell dashboard-revenue">${formatCurrency(computed.dashboard_revenue)}</td>
+                <td>
+                    <input
+                        type="number"
+                        class="summer-input"
+                        min="0"
+                        step="0.01"
+                        value="${computed.summer_revenue.toFixed(2)}"
+                        aria-label="Summer camp revenue for ${escapeHtml(computed.center)}">
+                </td>
+                <td class="currency-cell total-revenue">${formatCurrency(computed.total_revenue)}</td>
+                <td class="currency-cell incentive-amount">${formatCurrency(computed.incentive_amount)}</td>
+                <td>
+                    <div class="achievement-header">
+                        <span class="achievement-value">${computed.achievement_pct.toFixed(1)}%</span>
+                        <span class="status-pill ${computed.status}">${computed.status_label}</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill ${computed.status}" data-progress-width="${computed.progress_width}"></div>
+                    </div>
+                    <div class="achievement-meta">
+                        <span>Total revenue vs base target (Revenue + Summer)</span>
+                        <span>Width capped visually at 100%</span>
+                    </div>
+                </td>
+                <td>
+                    <button type="button" class="remove-btn" data-remove-center="${escapeHtml(computed.center)}" aria-label="Remove ${escapeHtml(computed.center)} from table">✕</button>
+                </td>
+            </tr>
+        `;
+    }
+
+    function renderRows(rows) {
+        tableBody.innerHTML = rows.map((row) => rowMarkup(row)).join('');
+        refreshProgressBars();
+        bindInputHandlers();
+        const computedRows = getRowsFromDom();
+        updateFooterTotals(computedRows);
+        updateVisibleCenterCount(computedRows);
+        refreshAddCenterOptions();
+    }
+
+    function computeSummaryFromRows(rows) {
+        const totalSummerRevenue = rows.reduce((sum, row) => sum + toNumber(row.summer_revenue), 0);
+        const totalIncentivePool = rows.reduce((sum, row) => sum + toNumber(row.incentive_amount), 0);
+        const avgAchievement = rows.length
+            ? rows.reduce((sum, row) => sum + toNumber(row.achievement_pct), 0) / rows.length
+            : 0;
+        return {
+            total_summer_revenue: toNumber(totalSummerRevenue.toFixed(2)),
+            total_incentive_pool: toNumber(totalIncentivePool.toFixed(2)),
+            average_target_achievement: toNumber(avgAchievement.toFixed(1)),
+        };
+    }
+
+    function updateCenterActiveState(rows) {
+        const activeIds = new Set(rows.map((row) => toNumber(row.center_id)));
+        state.allCenters.forEach((center) => {
+            center.is_active = activeIds.has(toNumber(center.center_id));
+        });
+    }
+
+    function markDirty() {
+        state.isDirty = true;
+        setSaveState('pending', 'Unsaved changes');
+    }
+
+    async function postJson(url, body, options = {}) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify(body),
+            signal: options.signal,
+        });
+
+        let payload = null;
+        try {
+            payload = await response.json();
+        } catch (_e) {
+            payload = null;
+        }
+
+        if (!response.ok) {
+            throw new Error((payload && (payload.error || payload.message)) || 'Request failed');
+        }
+
+        return payload;
+    }
+
+    async function fetchSummerCampData(year, baseTargetMonths) {
+        const query = new URLSearchParams({
+            year: String(year),
+            base_target_months: baseTargetMonths.join(','),
+        });
+
+        const response = await fetch('/summer-camp-incentives/data?' + query.toString(), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
+
+        let payload = null;
+        try {
+            payload = await response.json();
+        } catch (_error) {
+            payload = null;
+        }
+
+        if (!response.ok) {
+            throw new Error((payload && (payload.error || payload.message)) || 'Unable to refresh data');
+        }
+
+        return payload;
+    }
+
+    async function reloadSummerCampData(options = {}) {
+        const selectedYear = toNumber(options.year || yearSelect.value, new Date().getFullYear());
+        const selectedMonths = sanitizeBaseTargetMonths(options.baseTargetMonths || getCurrentBaseTargetMonths());
+        const pushHistory = options.pushHistory !== false;
+
+        if (!selectedMonths.length) {
+            showToast('Select at least one month for Base Target.', true);
+            applyBaseTargetSelect(state.baseTargetMonths);
+            return;
+        }
+
+        if (state.isDirty) {
+            await saveRows();
+        }
+
+        persistBaseTargetMonths(selectedYear, selectedMonths);
+        state.baseTargetMonths = selectedMonths;
+        applyBaseTargetSelect(selectedMonths);
+        syncBaseTargetHeader(selectedMonths);
+        baseMonthsToggle.textContent = formatMonthsInline(selectedMonths);
+
+        setFilterControlsDisabled(true);
+        setSaveState('saving', 'Loading...');
+
+        try {
+            const payload = await fetchSummerCampData(selectedYear, selectedMonths);
+            const rows = payload.rows || [];
+            const summary = payload.summary || computeSummaryFromRows(rows);
+
+            yearSelect.value = String(payload.year || selectedYear);
+            renderRows(rows);
+            updateSummary(summary);
+            applyServerBaseTargetMonths(payload.base_target_months || selectedMonths, payload.year || selectedYear);
+            state.lastSavedRows = rows;
+            state.lastSavedSummary = summary;
+            updateCenterActiveState(rows);
+            state.isDirty = false;
+
+            const nextQuery = new URLSearchParams({
+                year: String(payload.year || selectedYear),
+                base_target_months: (payload.base_target_months || selectedMonths).join(','),
+            });
+            if (pushHistory) {
+                history.pushState({
+                    year: payload.year || selectedYear,
+                    base_target_months: payload.base_target_months || selectedMonths,
+                }, '', '/summer-camp-incentives?' + nextQuery.toString());
+            }
+
+            setSaveState('saved', 'Loaded');
+        } catch (error) {
+            logActionError('reload summer camp data', error);
+            setSaveState('error', 'Load failed');
+            showToast(error.message || 'Unable to refresh Summer Camp data.', true);
+        } finally {
+            setFilterControlsDisabled(false);
+        }
+    }
+
+    async function saveRows() {
+        if (!state.isDirty) {
+            return;
+        }
+
+        const rows = getRowsFromDom().map((row) => ({
+            center: row.center,
+            summer_revenue: row.summer_revenue,
+        }));
+
+        const period = getCurrentPeriod();
+        const controller = new AbortController();
+        state.saveRequestController = controller;
+        state.isSaving = true;
+        setSaveState('saving', 'Saving...');
+
+        try {
+            const payload = await postJson('/summer-camp-incentives/save', {
+                month: period.month,
+                year: period.year,
+                base_target_months: getCurrentBaseTargetMonths(),
+                rows,
+            }, {
+                signal: controller.signal,
+            });
+
+            const serverRows = payload.rows || [];
+            const serverSummary = payload.summary || computeSummaryFromRows(serverRows);
+            renderRows(serverRows);
+            updateSummary(serverSummary);
+            applyServerBaseTargetMonths(payload.base_target_months || state.baseTargetMonths, period.year);
+            state.lastSavedRows = serverRows;
+            state.lastSavedSummary = serverSummary;
+            updateCenterActiveState(serverRows);
+            state.isDirty = false;
+            setSaveState('saved', 'Saved');
+        } catch (error) {
+            if (error && error.name === 'AbortError') {
+                setSaveState('pending', 'Saving...');
+                return;
+            }
+            logActionError('save rows', error);
+            setSaveState('error', 'Save failed');
+            showToast(error.message || 'Save failed', true);
+        } finally {
+            if (state.saveRequestController === controller) {
+                state.saveRequestController = null;
+                state.isSaving = false;
+            }
+        }
+    }
+
+    function cancelAutosaveWork() {
+        if (state.saveTimer) {
+            clearTimeout(state.saveTimer);
+            state.saveTimer = null;
+        }
+        if (state.saveRequestController) {
+            state.saveRequestController.abort();
+            state.saveRequestController = null;
+            state.isSaving = false;
+        }
+    }
+
+    function scheduleSave() {
+        cancelAutosaveWork();
+        setSaveState('pending', 'Saving...');
+        state.saveTimer = setTimeout(() => {
+            state.saveTimer = null;
+            saveRows();
+        }, state.saveDelayMs);
+    }
+
+    function bindInputHandlers() {
+        const isZeroValue = (value) => {
+            const normalized = String(value || '').trim();
+            return normalized === '0' || normalized === '0.00';
+        };
+
+        const selectAllText = (input) => {
+            requestAnimationFrame(() => {
+                input.select();
+            });
+        };
+
+        tableBody.querySelectorAll('.summer-input').forEach((input) => {
+            input.addEventListener('focus', () => {
+                selectAllText(input);
+            });
+
+            input.addEventListener('click', () => {
+                if (isZeroValue(input.value)) {
+                    input.value = '';
+                    return;
+                }
+                selectAllText(input);
+            });
+
+            input.addEventListener('input', () => {
+                markDirty();
+                const rows = getRowsFromDom();
+                updateFooterTotals(rows);
+                updateSummary(computeSummaryFromRows(rows));
+                scheduleSave();
+            });
+
+            input.addEventListener('blur', () => {
+                if (String(input.value || '').trim() === '') {
+                    input.value = '0.00';
+                    const rows = getRowsFromDom();
+                    updateFooterTotals(rows);
+                    updateSummary(computeSummaryFromRows(rows));
+                }
+                if (state.isDirty) {
+                    scheduleSave();
+                }
+            });
+        });
+    }
+
+    function refreshAddCenterOptions() {
+        const activeIds = new Set(
+            Array.from(tableBody.querySelectorAll('tr.data-row')).map((tr) => toNumber(tr.dataset.centerId))
+        );
+        const inactiveCenters = state.allCenters.filter((center) => !activeIds.has(toNumber(center.center_id)));
+
+        addCenterSelect.innerHTML = '';
+        inactiveCenters.forEach((center) => {
+            const option = document.createElement('option');
+            option.value = String(center.center_id);
+            option.textContent = center.center;
+            addCenterSelect.appendChild(option);
+        });
+
+        confirmAddCenterBtn.disabled = inactiveCenters.length === 0;
+    }
+
+    function openAddCenterModal() {
+        try {
+            refreshAddCenterOptions();
+            addCenterModal.classList.add('open');
+            addCenterModal.setAttribute('aria-hidden', 'false');
+        } catch (error) {
+            logActionError('open add center modal', error);
+        }
+    }
+
+    function closeAddCenterModal() {
+        addCenterModal.classList.remove('open');
+        addCenterModal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function addSelectedCenter() {
+        const selectedCenterId = toNumber(addCenterSelect.value);
+        if (!selectedCenterId) {
+            showToast('Select a center to add.', true);
+            return;
+        }
+
+        const period = getCurrentPeriod();
+        confirmAddCenterBtn.disabled = true;
+
+        try {
+            const payload = await postJson('/summer-camp-incentives/centers/' + selectedCenterId + '/activate', {
+                month: period.month,
+                year: period.year,
+                base_target_months: getCurrentBaseTargetMonths(),
+            });
+
+            const rows = payload.rows || [];
+            const summary = payload.summary || computeSummaryFromRows(rows);
+
+            if (!rows.some((row) => toNumber(row.center_id) === selectedCenterId)) {
+                const center = state.allCenters.find((item) => toNumber(item.center_id) === selectedCenterId);
+                if (center) {
+                    rows.push({
+                        center_id: center.center_id,
+                        center: center.center,
+                        base_target: 0,
+                        dashboard_revenue: 0,
+                        summer_revenue: 0,
+                    });
+                }
+            }
+
+            renderRows(rows);
+            updateSummary(summary);
+            applyServerBaseTargetMonths(payload.base_target_months || state.baseTargetMonths, period.year);
+            state.lastSavedRows = rows;
+            state.lastSavedSummary = summary;
+            updateCenterActiveState(rows);
+            state.isDirty = false;
+            setSaveState('saved', 'All changes saved');
+            closeAddCenterModal();
+            showToast(payload.message || 'Center added.');
+        } catch (error) {
+            logActionError('add center', error);
+            showToast(error.message || 'Unable to add center.', true);
+        } finally {
+            confirmAddCenterBtn.disabled = false;
+        }
+    }
+
+    async function removeCenter(centerId, centerName) {
+        const period = getCurrentPeriod();
+        try {
+            const payload = await postJson('/summer-camp-incentives/centers/' + centerId + '/deactivate', {
+                month: period.month,
+                year: period.year,
+                base_target_months: getCurrentBaseTargetMonths(),
+            });
+
+            const rows = payload.rows || [];
+            const summary = payload.summary || computeSummaryFromRows(rows);
+            renderRows(rows);
+            updateSummary(summary);
+            applyServerBaseTargetMonths(payload.base_target_months || state.baseTargetMonths, period.year);
+            state.lastSavedRows = rows;
+            state.lastSavedSummary = summary;
+            updateCenterActiveState(rows);
+            state.isDirty = false;
+            setSaveState('saved', 'All changes saved');
+            showToast((payload.message || 'Center removed') + ': ' + centerName);
+        } catch (error) {
+            logActionError('remove center', error);
+            showToast(error.message || 'Unable to remove center.', true);
+        }
+    }
+
+    function restoreLastSavedInputs() {
+        try {
+            if (!state.lastSavedRows.length) {
+                showToast('No saved values found to restore.', true);
+                return;
+            }
+
+            renderRows(state.lastSavedRows);
+            updateSummary(state.lastSavedSummary);
+            state.isDirty = false;
+            setSaveState('saved', 'All changes saved');
+            showToast('Inputs restored to last saved state.');
+        } catch (error) {
+            logActionError('restore inputs', error);
+            showToast('Unable to restore last saved values.', true);
+        }
+    }
+
+    async function exportToExcel() {
+        const period = getCurrentPeriod();
+        const exportButton = document.getElementById('exportToExcelBtn');
+        const oldLabel = exportButton.textContent;
+        exportButton.disabled = true;
+        exportButton.textContent = 'Exporting...';
+
+        try {
+            const response = await fetch('/summer-camp-incentives/export', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken,
+                },
+                body: JSON.stringify({
+                    month: period.month,
+                    year: period.year,
+                    base_target_months: getCurrentBaseTargetMonths(),
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Export request failed');
+            }
+
+            const blob = await response.blob();
+            const contentDisposition = response.headers.get('Content-Disposition') || '';
+            const fileNameMatch = contentDisposition.match(/filename=([^;]+)/i);
+            const fileName = fileNameMatch ? fileNameMatch[1].trim() : 'summer_camp_incentives.csv';
+
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = fileName.replace(/^"|"$/g, '');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            showToast('Export started.');
+        } catch (error) {
+            logActionError('export to excel', error);
+            showToast('Export failed. Check console for details.', true);
+        } finally {
+            exportButton.disabled = false;
+            exportButton.textContent = oldLabel;
+        }
+    }
+
+    function applySort(key) {
+        const sortableHeaders = document.querySelectorAll('th.sortable-th');
+        if (state.sort.key === key) {
+            state.sort.direction = state.sort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            state.sort.key = key;
+            state.sort.direction = 'asc';
+        }
+
+        sortableHeaders.forEach((th) => {
+            th.removeAttribute('data-sort-direction');
+        });
+        const activeHeader = Array.from(sortableHeaders).find((th) => th.dataset.sortKey === key);
+        if (activeHeader) {
+            activeHeader.setAttribute('data-sort-direction', state.sort.direction);
+        }
+
+        const rows = getRowsFromDom();
+        rows.sort((a, b) => {
+            const av = toNumber(a[key]);
+            const bv = toNumber(b[key]);
+            return state.sort.direction === 'asc' ? av - bv : bv - av;
+        });
+        renderRows(rows);
+    }
+
+    window.updateFilters = async function updateFilters() {
+        try {
+            const selectedYear = toNumber(yearSelect.value, new Date().getFullYear());
+            const queryMonths = readPersistedBaseTargetMonths(selectedYear);
+            const baseTargetMonths = queryMonths.length ? queryMonths : getCurrentBaseTargetMonths();
+            await reloadSummerCampData({
+                year: selectedYear,
+                baseTargetMonths,
+            });
+        } catch (error) {
+            logActionError('update filters', error);
+        }
+    };
+
+    function initStateFromDom() {
+        const rows = getRowsFromDom();
+        const summary = {
+            total_summer_revenue: toNumber(document.getElementById('totalSummerRevenue').textContent.replace(/[^\d.-]/g, '')),
+            total_incentive_pool: toNumber(document.getElementById('totalIncentivePool').textContent.replace(/[^\d.-]/g, '')),
+            average_target_achievement: toNumber(document.getElementById('averageTargetAchievement').textContent.replace(/[^\d.-]/g, '')),
+        };
+
+        state.lastSavedRows = rows;
+        state.lastSavedSummary = summary;
+        updateCenterActiveState(rows);
+        updateFooterTotals(rows);
+        updateVisibleCenterCount(rows);
+        refreshProgressBars();
+        refreshAddCenterOptions();
+        const selectedYear = toNumber(yearSelect.value, new Date().getFullYear());
+        const serverMonths = sanitizeBaseTargetMonths(state.baseTargetMonths);
+        const persistedMonths = readPersistedBaseTargetMonths(selectedYear);
+
+        if (persistedMonths.length && persistedMonths.join(',') !== serverMonths.join(',')) {
+            reloadSummerCampData({
+                year: selectedYear,
+                baseTargetMonths: persistedMonths,
+                pushHistory: false,
+            });
+            return;
+        }
+
+        applyServerBaseTargetMonths(serverMonths, selectedYear);
+        setSaveState('saved', 'All changes saved');
+    }
+
+    function applySelectedBaseMonths(selectedMonths, shouldReload) {
+        const safeMonths = sanitizeBaseTargetMonths(selectedMonths);
+
+        if (!safeMonths.length) {
+            showToast('Select at least one month for Base Target.', true);
+            applyBaseTargetSelect(state.baseTargetMonths);
+            return;
+        }
+
+        state.baseTargetMonths = safeMonths;
+        persistBaseTargetMonths(toNumber(yearSelect.value, new Date().getFullYear()), safeMonths);
+        applyBaseTargetSelect(safeMonths);
+        syncBaseTargetHeader(safeMonths);
+        baseMonthsToggle.textContent = formatMonthsInline(safeMonths);
+        if (shouldReload) {
+            reloadSummerCampData({
+                year: toNumber(yearSelect.value, new Date().getFullYear()),
+                baseTargetMonths: safeMonths,
+            });
+        }
+    }
+
+    baseMonthsToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const isOpen = baseMonthsMenu.classList.toggle('open');
+        baseMonthsToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+
+    baseMonthsMenu.addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
+
+    baseMonthsChecklist.addEventListener('change', () => {
+        const selectedMonths = Array.from(baseMonthsChecklist.querySelectorAll('input[type="checkbox"][data-month]:checked'))
+            .map((checkbox) => checkbox.value);
+        applySelectedBaseMonths(selectedMonths, true);
+    });
+
+    baseMonthsSelectAll.addEventListener('click', () => {
+        const allMonths = allCalendarMonths;
+        applySelectedBaseMonths(allMonths, true);
+    });
+
+    baseMonthsApply.addEventListener('click', () => {
+        baseMonthsMenu.classList.remove('open');
+        baseMonthsToggle.setAttribute('aria-expanded', 'false');
+    });
+
+    window.addEventListener('popstate', (event) => {
+        const popYear = event.state && event.state.year ? event.state.year : toNumber(yearSelect.value, new Date().getFullYear());
+        const popMonths = event.state && Array.isArray(event.state.base_target_months)
+            ? event.state.base_target_months
+            : readPersistedBaseTargetMonths(popYear);
+        reloadSummerCampData({
+            year: popYear,
+            baseTargetMonths: popMonths,
+            pushHistory: false,
+        });
+    });
+
+    document.addEventListener('click', () => {
+        if (!baseMonthsMenu.classList.contains('open')) {
+            return;
+        }
+        baseMonthsMenu.classList.remove('open');
+        baseMonthsToggle.setAttribute('aria-expanded', 'false');
+    });
+
+    document.getElementById('openAddCenterModal').addEventListener('click', openAddCenterModal);
+    document.getElementById('cancelAddCenter').addEventListener('click', closeAddCenterModal);
+    document.getElementById('confirmAddCenter').addEventListener('click', addSelectedCenter);
+    document.getElementById('restoreAllCenters').addEventListener('click', restoreLastSavedInputs);
+    document.getElementById('exportToExcelBtn').addEventListener('click', exportToExcel);
+
+    addCenterModal.addEventListener('click', (event) => {
+        if (event.target === addCenterModal) {
+            closeAddCenterModal();
+        }
+    });
+
+    tableBody.addEventListener('click', (event) => {
+        const button = event.target.closest('.remove-btn');
+        if (!button) {
+            return;
+        }
+        const row = button.closest('tr.data-row');
+        if (!row) {
+            return;
+        }
+
+        const centerId = toNumber(row.dataset.centerId);
+        const centerName = row.dataset.center || 'Center';
+        if (!centerId) {
+            logActionError('remove center', new Error('Missing center id for ' + centerName));
+            showToast('Unable to remove center due to missing center id.', true);
+            return;
+        }
+        removeCenter(centerId, centerName);
+    });
+
+    document.querySelectorAll('th.sortable-th').forEach((header) => {
+        header.addEventListener('click', () => {
+            applySort(header.dataset.sortKey);
+        });
+    });
+
+    renderBaseMonthsChecklist();
+    bindInputHandlers();
+    initStateFromDom();
+})();
+</script>
+
+<script src="/static/sidebar.js"></script>
+</body>
+</html>

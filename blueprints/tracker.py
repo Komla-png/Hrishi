@@ -190,10 +190,6 @@ def tracker_tasks():
                             t['deleted_months'].append(month_key)
             save_tasks(tasks)
             return redirect(url_for('tracker.tracker_tasks'))
-    # Debug: print all tasks and their fields before rendering
-    import pprint
-    print('DEBUG TASKS BEFORE RENDER:')
-    pprint.pprint(tasks)
     return render_template('tasks.html', tasks=tasks, month_days=month_days, today=today, month=month, year=year)
 
 @tracker_bp.route('/tasks/complete', methods=['POST'])

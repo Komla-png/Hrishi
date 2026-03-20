@@ -1,121 +1,334 @@
-<div id="sidebar" class="sidebar">
-     <div class="sidebar-header">
-          <span class="sidebar-title">🏸 Academy</span>
-          <button id="sidebarToggle" class="sidebar-toggle">☰</button>
-     </div>
-     <nav class="sidebar-nav">
-          <a href="/dashboard" class="sidebar-link"><span class="sidebar-icon">📊</span><span class="sidebar-text">Dashboard</span></a>
-          <a href="/coaches" class="sidebar-link"><span class="sidebar-icon">🏋️</span><span class="sidebar-text">Coaches</span></a>
-          <a href="/analytics" class="sidebar-link"><span class="sidebar-icon">📈</span><span class="sidebar-text">Analytics</span></a>
-          <a href="/leaves" class="sidebar-link"><span class="sidebar-icon">🗓️</span><span class="sidebar-text">Leaves</span></a>
-          <a href="/settings" class="sidebar-link"><span class="sidebar-icon">⚙️</span><span class="sidebar-text">Settings</span></a>
-          <a href="/tasks" class="sidebar-link"><span class="sidebar-icon">✅</span><span class="sidebar-text">Tasks</span></a>
-          <a href="/centers" class="sidebar-link"><span class="sidebar-icon">🏢</span><span class="sidebar-text">View All Centers</span></a>
-     </nav>
-</div>
-<style>
-.sidebar {
-            padding: 10px 24px;
-            border-radius: 6px;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Records - Academy Dashboard</title>
+    <link rel="stylesheet" href="/static/unified-theme.css">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+            min-height: 100vh;
+            color: #e5e7eb;
+        }
+
+        .page {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 28px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 30px;
+            color: #f8fafc;
+        }
+
+        .header p {
+            margin: 8px 0 0;
+            color: #94a3b8;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            border-radius: 10px;
             text-decoration: none;
-            font-weight: 600;
-            font-size: 1rem;
-            border: none;
-            transition: background 0.2s;
+            font-weight: 700;
+            border: 1px solid #24324f;
+            background: #0f172a;
+            color: #dbeafe;
+            cursor: pointer;
         }
+
         .btn:hover {
-            background: #059669;
+            background: #1d4ed8;
+            color: #ffffff;
         }
+
+        .panel {
+            border: 1px solid #24324f;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #0f172a;
+        }
+
+        .filters {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 18px;
+            border-bottom: 1px solid #24324f;
+            background: #111c33;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 180px;
+        }
+
+        .filter-group label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #93c5fd;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid #31456f;
+            background: #0b1324;
+            color: #e5e7eb;
+            font-size: 14px;
+        }
+
+        .filter-group input:focus,
+        .filter-group select:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .btn-secondary {
+            background: #172554;
+            color: #bfdbfe;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 18px;
+            border-bottom: 1px solid #24324f;
+        }
+
+        .toolbar h2 {
+            margin: 0;
+            font-size: 16px;
+            color: #f8fafc;
+        }
+
+        .toolbar span {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fecaca;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 24px;
-            background: #f9fafb;
+            min-width: 900px;
+        }
+
         th, td {
-            padding: 14px 10px;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 14px 16px;
             text-align: left;
+            border-bottom: 1px solid #24324f;
         }
-            font-weight: 600;
-            color: #374151;
+
+        th {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #93c5fd;
+            background: #1e293b;
         }
-        tr:last-child td {
+
+        td {
+            color: #e5e7eb;
+        }
+
+        .status {
+            display: inline-flex;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-approved {
+            background: rgba(34, 197, 94, 0.14);
+            color: #bbf7d0;
+        }
+
+        .status-pending {
+            background: rgba(234, 179, 8, 0.18);
+            color: #fde68a;
+        }
+
+        .status-rejected {
+            background: rgba(239, 68, 68, 0.16);
+            color: #fecaca;
+        }
+
         .empty {
+            padding: 28px;
             text-align: center;
-            color: #6b7280;
-            font-size: 1.1rem;
-            padding: 32px 0;
+            color: #94a3b8;
+        }
+
+        @media (max-width: 768px) {
+            .page {
+                padding: 18px;
+            }
+
+            .header {
+                flex-direction: column;
+            }
         }
     </style>
+    <link rel="stylesheet" href="/static/sidebar.css">
 </head>
 <body>
-            <span class="sidebar-title">🏸 Academy</span>
-            <button id="sidebarToggle" class="sidebar-toggle">☰</button>
-    <div class="container" style="margin-left:220px;">
-        <h2>Week Off Leave Records (2026)</h2>
-        <div class="actions-bar">
-            <a href="/leaves" class="btn">Back to Leave Management</a>
-            <a href="/leaves/weekoff" class="btn">View Week Off Records</a>
-                <div id="sidebar" class="sidebar">
-                    <div class="sidebar-header">
-                        <span class="sidebar-title">🏸 Academy</span>
-                        <button id="sidebarToggle" class="sidebar-toggle">☰</button>
-                    </div>
-                    <nav class="sidebar-nav">
-                        <a href="/dashboard" class="sidebar-link"><span class="sidebar-icon">📊</span><span class="sidebar-text">Dashboard</span></a>
-                        <a href="/coaches" class="sidebar-link"><span class="sidebar-icon">🏋️</span><span class="sidebar-text">Coaches</span></a>
-                        <a href="/analytics" class="sidebar-link"><span class="sidebar-icon">📈</span><span class="sidebar-text">Analytics</span></a>
-                        <a href="/leaves" class="sidebar-link"><span class="sidebar-icon">🗓️</span><span class="sidebar-text">Leaves</span></a>
-                        <a href="/settings" class="sidebar-link"><span class="sidebar-icon">⚙️</span><span class="sidebar-text">Settings</span></a>
-                        <a href="/tasks" class="sidebar-link"><span class="sidebar-icon">✅</span><span class="sidebar-text">Tasks</span></a>
-                        <a href="/centers" class="sidebar-link"><span class="sidebar-icon">🏢</span><span class="sidebar-text">View All Centers</span></a>
-                        <button id="themeToggle" class="sidebar-link" style="margin-top:18px;display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:none;font:inherit;outline:none;">
-                            <span class="sidebar-icon">🌙</span><span class="sidebar-text">Night Mode</span>
-                        </button>
-                    </nav>
+{% include '_sidebar.html' %}
+<div class="sb-content">
+    <div class="page">
+        <div class="header">
+            <div>
+                <h1>Leave Records</h1>
+                <p>Browse all leave entries with filter options.</p>
+            </div>
+            <div class="actions">
+                <a class="btn" href="/leaves?year={{ year }}">Back To Leaves</a>
+                <a class="btn" href="/dashboard">Dashboard</a>
+            </div>
+        </div>
+
+        {% if error_message %}
+        <div class="message error">
+            Failed to load leave records: {{ error_message }}
+        </div>
+        {% endif %}
+
+        <div class="panel">
+            <form method="GET" action="/leaves/weekoff" class="filters">
+                <div class="filter-group">
+                    <label for="coach_name">Coach Name</label>
+                    <input type="text" id="coach_name" name="coach_name" value="{{ coach_name }}" placeholder="Enter coach name">
                 </div>
-<script>
-// Theme toggle logic
-document.addEventListener('DOMContentLoaded', function() {
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-            const isDark = document.body.classList.contains('dark-theme');
-            document.body.classList.toggle('dark-theme', !isDark);
-            document.body.classList.toggle('light-theme', isDark);
-            // Save preference
-            localStorage.setItem('dashboardPreferences', JSON.stringify({theme: isDark ? 'light' : 'dark'}));
-        });
-    }
-    // On load, set theme from localStorage
-    try {
-        const prefs = JSON.parse(localStorage.getItem('dashboardPreferences') || '{}');
-        if (prefs.theme === 'light') {
-            document.body.classList.add('light-theme');
-            document.body.classList.remove('dark-theme');
-        } else {
-            document.body.classList.add('dark-theme');
-            document.body.classList.remove('light-theme');
-        }
-    } catch(e) {}
-});
-</script>
-                <div class="container" style="margin-left:220px;">
+                <div class="filter-group">
+                    <label for="year">Year</label>
+                    <select id="year" name="year">
+                        {% for available_year in available_years %}
+                        <option value="{{ available_year }}" {% if available_year == year %}selected{% endif %}>{{ available_year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="month">Month</label>
+                    <select id="month" name="month">
+                        <option value="All" {% if selected_month == 'All' %}selected{% endif %}>All Months</option>
+                        {% for month_name in calendar_months %}
+                        <option value="{{ month_name }}" {% if month_name == selected_month %}selected{% endif %}>{{ month_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="leave_type">Leave Type</label>
+                    <select id="leave_type" name="leave_type">
+                        <option value="All" {% if selected_leave_type == 'All' %}selected{% endif %}>All Types</option>
+                        {% for leave_type in available_leave_types %}
+                        <option value="{{ leave_type }}" {% if leave_type == selected_leave_type %}selected{% endif %}>{{ leave_type }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button type="submit" class="btn">Apply Filters</button>
+                    <a class="btn btn-secondary" href="/leaves/weekoff?year={{ year }}&month=All&leave_type=All&coach_name=">Clear</a>
+                </div>
+            </form>
+
+            <div class="toolbar">
+                <h2>Records</h2>
+                <span>{{ leave_records|length }} found</span>
+            </div>
+
+            {% if leave_records %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Coach Name</th>
+                            <th>Leave Type</th>
+                            <th>Leave Date</th>
+                            <th>Month</th>
+                            <th>Year</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for leave in leave_records %}
+                        <tr>
+                            <td>{{ leave['coach_name'] }}</td>
+                            <td>{{ leave['leave_type'] }}</td>
+                            <td>{{ leave['leave_date'] }}</td>
+                            <td>{{ leave['month'] }}</td>
+                            <td>{{ leave['year'] }}</td>
+                            <td>
+                                <span class="status status-{{ leave['status']|lower }}">{{ leave['status'] }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% else %}
-            {% for leave in leaves %}
-            <tr>
-                <td>{{ leave[1] }}</td>
-                <td>{{ leave[2] }}</td>
-                <td>{{ leave[3] }}</td>
-                <td>{{ leave[5] }}</td>
-                <td>
-                    <form method="POST" action="/leaves/weekoff/delete/{{ leave[0] }}" style="display:inline;">
-                        <button type="submit" onclick="return confirm('Delete this Week Off leave record?')" class="btn btn-danger">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
+            <div class="empty">
+                No leave records found
+            </div>
             {% endif %}
-        </table>
+        </div>
     </div>
+</div><!-- /.sb-content -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>

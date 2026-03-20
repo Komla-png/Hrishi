@@ -182,9 +182,13 @@
             font-size: 1rem;
         }
     </style>
+    <link rel="stylesheet" href="/static/unified-theme.css">
+    <link rel="stylesheet" href="/static/sidebar.css">
 </head>
 <body>
-    <div class="container">
+{% include '_sidebar.html' %}
+    <div class="sb-content">
+<div class="container">
         <div class="header">
             <h1>⚙️ Account Settings</h1>
             <div class="btn-group">

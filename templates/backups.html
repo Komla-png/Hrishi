@@ -55,8 +55,12 @@
     }
     /* ...existing code for cards, tables, etc... */
     </style>
+    <link rel="stylesheet" href="/static/unified-theme.css">
+    <link rel="stylesheet" href="/static/sidebar.css">
 </head>
 <body>
+{% include '_sidebar.html' %}
+<div class="sb-content">
 <div class="container">
     <div class="header">
         <h1 style="display:flex;align-items:center;gap:12px;font-size:2.2rem;"><span style="font-size:2.2rem;">📦</span> Database Backups</h1>
@@ -153,5 +157,7 @@
             {% endif %}
         </div>
     </div>
+</div><!-- /.sb-content -->
+<script src="/static/sidebar.js"></script>
 </body>
 </html>
