@@ -12,8 +12,6 @@ ENV/
 *.db-wal
 *.db-shm
 instance/
-database.db
-academy.db
 
 # Backups folder
 backups/
