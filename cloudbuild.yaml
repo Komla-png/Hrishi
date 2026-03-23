@@ -1,23 +1,39 @@
-steps:
-  # Build the Docker image
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/academy-dashboard:latest', '.']
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
 
-  # Push the Docker image to Container Registry
+steps:
+  # Build the Docker image using explicit Dockerfile
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/academy-dashboard:latest']
+    id: 'build'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/academy-dashboard:latest'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+    timeout: '900s'
+
+  # Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/academy-dashboard:latest'
+    timeout: '900s'
 
   # Deploy to Cloud Run
-  - name: 'gcr.io/cloud-builders/run'
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'deploy'
     args:
-      - deploy
-      - academy-dashboard
-      - --image=gcr.io/$PROJECT_ID/academy-dashboard:latest
-      - --region=us-central1
-      - --platform=managed
-      - --allow-unauthenticated
+      - 'run'
+      - '--image=gcr.io/$PROJECT_ID/academy-dashboard:latest'
+      - '--service=academy-dashboard'
+      - '--region=us-central1'
+    timeout: '900s'
 
 images:
   - 'gcr.io/$PROJECT_ID/academy-dashboard:latest'
 
-timeout: '1800s'
+timeout: '3000s'
