@@ -1,39 +1,38 @@
-options:
-  machineType: 'N1_HIGHCPU_8'
-  logging: CLOUD_LOGGING_ONLY
+# Cloud Build configuration for Hrishi Academy Dashboard
+# Explicitly uses Dockerfile - no buildpacks
 
 steps:
-  # Build the Docker image using explicit Dockerfile
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'build'
+  # Step 0: Build Docker image
+  - name: gcr.io/cloud-builders/docker
     args:
-      - 'build'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/academy-dashboard:latest'
-      - '-f'
-      - 'Dockerfile'
-      - '.'
-    timeout: '900s'
+      - build
+      - --no-cache
+      - -t
+      - gcr.io/$PROJECT_ID/academy-dashboard:latest
+      - -t
+      - gcr.io/$PROJECT_ID/academy-dashboard:$COMMIT_SHA
+      - -f
+      - ./Dockerfile
+      - .
+    id: BUILD
 
-  # Push to Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    id: 'push'
+  # Step 1: Push to Container Registry  
+  - name: gcr.io/cloud-builders/docker
     args:
-      - 'push'
-      - 'gcr.io/$PROJECT_ID/academy-dashboard:latest'
-    timeout: '900s'
+      - push
+      - gcr.io/$PROJECT_ID/academy-dashboard
+    id: PUSH
 
-  # Deploy to Cloud Run
-  - name: 'gcr.io/cloud-builders/gke-deploy'
-    id: 'deploy'
+  # Step 2: Deploy to Cloud Run
+  - name: gcr.io/cloud-builders/gke-deploy
     args:
-      - 'run'
-      - '--image=gcr.io/$PROJECT_ID/academy-dashboard:latest'
-      - '--service=academy-dashboard'
-      - '--region=us-central1'
-    timeout: '900s'
+      - run
+      - --image=gcr.io/$PROJECT_ID/academy-dashboard:latest
+      - --service=academy-dashboard
+      - --region=us-central1
 
 images:
-  - 'gcr.io/$PROJECT_ID/academy-dashboard:latest'
+  - gcr.io/$PROJECT_ID/academy-dashboard:latest
+  - gcr.io/$PROJECT_ID/academy-dashboard:$COMMIT_SHA
 
-timeout: '3000s'
+timeout: 1800s
