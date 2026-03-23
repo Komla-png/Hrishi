@@ -848,70 +848,31 @@ input{
 
 /* Save Indicator */
 .save-indicator {
-    min-height: 24px;
-    padding: 4px 10px;
-    border-radius: 999px;
+    height: 36px;
+    padding: 0 10px;
+    border-radius: 8px;
     font-size: 12px;
     font-weight: 600;
-    transition: opacity 0.22s ease;
+    transition: all 0.3s ease;
     line-height: 1;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     white-space: nowrap;
-    cursor: default;
-    pointer-events: none;
-    user-select: none;
-    box-shadow: none;
-    border: 1px solid transparent;
 }
 
 .save-indicator.saving {
-    background: #fef3c7;
-    color: #92400e;
-    border-color: #fcd34d;
+    background: #fbbf24;
+    color: #78350f;
 }
 
 .save-indicator.saved {
-    background: rgba(34, 197, 94, 0.14);
-    color: #166534;
-    border-color: rgba(34, 197, 94, 0.3);
+    background: #6ee7b7;
+    color: #065f46;
 }
 
 .save-indicator.error {
-    background: #fee2e2;
-    color: #991b1b;
-    border-color: #fecaca;
-}
-
-.save-indicator.is-hidden {
-    opacity: 0;
-}
-
-.save-toast-wrap {
-    position: fixed;
-    right: 18px;
-    bottom: 18px;
-    z-index: 3000;
-}
-
-.save-toast {
-    background: #0f172a;
-    color: #f8fafc;
-    border: 1px solid #1e293b;
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 12px 30px rgba(2, 6, 23, 0.35);
-    opacity: 0;
-    transform: translateY(8px);
-    transition: opacity 0.22s ease, transform 0.22s ease;
-}
-
-.save-toast.show {
-    opacity: 1;
-    transform: translateY(0);
+    background: #f87171;
+    color: #7f1d1d;
 }
 
 /* Modal */
@@ -1900,9 +1861,8 @@ body.dark-theme .btn-cancel-settings {
             {% endfor %}
         </select>
         <button type="button" class="btn btn-export-excel top-control-btn" onclick="exportDashboardToExcel()">📤 Export</button>
-        <button type="button" id="saveDashboardBtn" class="btn btn-secondary top-control-btn">💾 Save</button>
-        <div id="saveIndicator" class="save-indicator saved">✓ Saved</div>
-        <div id="saveToastWrap" class="save-toast-wrap" aria-live="polite" aria-atomic="true"></div>
+        <button type="submit" class="btn btn-secondary top-control-btn" form="dashboardForm">💾 Save</button>
+        <div id="saveIndicator" class="save-indicator saved">Saved</div>
     </div>
 </div>
 
@@ -2559,49 +2519,14 @@ window.addEventListener('beforeunload', () => {
 // ================= AUTO SAVE (DEBOUNCED) =================
 const form = document.getElementById('dashboardForm');
 const saveIndicator = document.getElementById('saveIndicator');
-const saveDashboardBtn = document.getElementById('saveDashboardBtn');
-const saveToastWrap = document.getElementById('saveToastWrap');
 let saveTimer = null;
 let inFlight = null;
 const CENTER_TABLE_SAVE_DELAY_MS = 700;
-let hideSavedIndicatorTimer = null;
-
-function showSaveToast(message) {
-    if (!saveToastWrap) return;
-    const toast = document.createElement('div');
-    toast.className = 'save-toast';
-    toast.textContent = message;
-    saveToastWrap.innerHTML = '';
-    saveToastWrap.appendChild(toast);
-
-    requestAnimationFrame(() => {
-        toast.classList.add('show');
-    });
-
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => {
-            if (toast.parentElement) toast.remove();
-        }, 220);
-    }, 2600);
-}
 
 function setIndicator(state, text) {
     saveIndicator.classList.remove('saving', 'saved', 'error');
-    saveIndicator.classList.remove('is-hidden');
     if (state) saveIndicator.classList.add(state);
     saveIndicator.textContent = text;
-
-    if (hideSavedIndicatorTimer) {
-        clearTimeout(hideSavedIndicatorTimer);
-        hideSavedIndicatorTimer = null;
-    }
-
-    if (state === 'saved') {
-        hideSavedIndicatorTimer = setTimeout(() => {
-            saveIndicator.classList.add('is-hidden');
-        }, 4500);
-    }
 }
 
 function applyServerUpdate(payload) {
@@ -2677,8 +2602,7 @@ function applyServerUpdate(payload) {
     }
 }
 
-async function autoSave(options = {}) {
-    const { showToast = false } = options;
+async function autoSave() {
     // Abort previous in-flight request (keep latest edits)
     if (inFlight && typeof inFlight.abort === 'function') {
         inFlight.abort();
@@ -2699,8 +2623,7 @@ async function autoSave(options = {}) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         applyServerUpdate(data);
-        setIndicator('saved', '✓ Saved');
-        if (showToast) showSaveToast('✓ Changes saved successfully');
+        setIndicator('saved', 'Saved');
     } catch (e) {
         // Ignore abort errors (we started a newer save)
         if (e && e.name === 'AbortError') return;
@@ -2713,33 +2636,6 @@ function queueAutoSave() {
     if (saveTimer) clearTimeout(saveTimer);
     setIndicator('saving', 'Saving...');
     saveTimer = setTimeout(autoSave, CENTER_TABLE_SAVE_DELAY_MS);
-}
-
-async function handleManualSave() {
-    if (!saveDashboardBtn) {
-        await autoSave({ showToast: true });
-        return;
-    }
-
-    saveDashboardBtn.disabled = true;
-    const originalText = saveDashboardBtn.textContent;
-    saveDashboardBtn.textContent = 'Saving...';
-
-    if (saveTimer) {
-        clearTimeout(saveTimer);
-        saveTimer = null;
-    }
-
-    try {
-        await autoSave({ showToast: true });
-    } finally {
-        saveDashboardBtn.disabled = false;
-        saveDashboardBtn.textContent = originalText;
-    }
-}
-
-if (saveDashboardBtn) {
-    saveDashboardBtn.addEventListener('click', handleManualSave);
 }
 
 function isZeroLikeValue(value) {

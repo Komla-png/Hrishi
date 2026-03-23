@@ -1,0 +1,120 @@
+[debug] [2026-03-23T03:18:46.207Z] ----------------------------------------------------------------------
+[debug] [2026-03-23T03:18:46.211Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\HZ902\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-03-23T03:18:46.212Z] CLI Version:   15.11.0
+[debug] [2026-03-23T03:18:46.212Z] Platform:      win32
+[debug] [2026-03-23T03:18:46.212Z] Node Version:  v24.14.0
+[debug] [2026-03-23T03:18:46.212Z] Time:          Mon Mar 23 2026 08:48:46 GMT+0530 (India Standard Time)
+[debug] [2026-03-23T03:18:46.212Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-23T03:18:48.229Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-23T03:18:48.230Z] > authorizing via signed-in user (hrishikeshzade98@gmail.com)
+[debug] [2026-03-23T03:18:48.230Z] [iam] checking project hrishi-dashboard for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-03-23T03:18:48.231Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:48.232Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:48.233Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/hrishi-dashboard:testIamPermissions [none]
+[debug] [2026-03-23T03:18:48.233Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/hrishi-dashboard:testIamPermissions  x-goog-user-project=hrishi-dashboard
+[debug] [2026-03-23T03:18:48.233Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/hrishi-dashboard:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-03-23T03:18:49.732Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/hrishi-dashboard:testIamPermissions 200
+[debug] [2026-03-23T03:18:49.732Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/hrishi-dashboard:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-03-23T03:18:49.732Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:49.733Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:49.733Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/hrishi-dashboard/serviceAccounts/hrishi-dashboard@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-03-23T03:18:49.733Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/hrishi-dashboard/serviceAccounts/hrishi-dashboard@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-03-23T03:18:51.363Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/hrishi-dashboard/serviceAccounts/hrishi-dashboard@appspot.gserviceaccount.com:testIamPermissions 404
+[debug] [2026-03-23T03:18:51.363Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/hrishi-dashboard/serviceAccounts/hrishi-dashboard@appspot.gserviceaccount.com:testIamPermissions {"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}}
+[debug] [2026-03-23T03:18:51.365Z] [functions] service account IAM check errored, deploy may fail: Request to https://iam.googleapis.com/v1/projects/hrishi-dashboard/serviceAccounts/hrishi-dashboard@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account {"name":"FirebaseError","children":[],"context":{"body":{"error":{"code":404,"message":"Unknown service account","status":"NOT_FOUND"}},"response":{"statusCode":404}},"exit":1,"message":"Request to https://iam.googleapis.com/v1/projects/hrishi-dashboard/serviceAccounts/hrishi-dashboard@appspot.gserviceaccount.com:testIamPermissions had HTTP Error: 404, Unknown service account","status":404}
+[debug] [2026-03-23T03:18:51.366Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:51.366Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:51.366Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/hrishi-dashboard [none]
+[debug] [2026-03-23T03:18:51.847Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/hrishi-dashboard 200
+[debug] [2026-03-23T03:18:51.847Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/hrishi-dashboard {"projectId":"hrishi-dashboard","projectNumber":"733389732515","displayName":"Hrishi-dashboard","name":"projects/hrishi-dashboard","resources":{"hostingSite":"hrishi-dashboard"},"state":"ACTIVE","etag":"1_94d6ea9d-0fa7-490f-996b-7686d8bf8582"}
+[debug] [2026-03-23T03:18:51.849Z] Specified "public" directory "public" does not exist; Deploy to Hosting site "hrishi-dashboard" may fail or be empty.
+[info] 
+[info] === Deploying to 'hrishi-dashboard'...
+[info] 
+[info] i  deploying functions, hosting 
+[debug] [2026-03-23T03:18:51.855Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:51.855Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:51.856Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudresourcemanager.googleapis.com [none]
+[debug] [2026-03-23T03:18:51.856Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudresourcemanager.googleapis.com  x-goog-user-project=hrishi-dashboard
+[debug] [2026-03-23T03:18:53.552Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudresourcemanager.googleapis.com 200
+[debug] [2026-03-23T03:18:53.552Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudresourcemanager.googleapis.com [omitted]
+[debug] [2026-03-23T03:18:53.563Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:53.563Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:53.563Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/hrishi-dashboard [none]
+[debug] [2026-03-23T03:18:53.900Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/hrishi-dashboard 200
+[debug] [2026-03-23T03:18:53.900Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/hrishi-dashboard {"projectNumber":"733389732515","projectId":"hrishi-dashboard","lifecycleState":"ACTIVE","name":"Hrishi-dashboard","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-03-23T02:40:27.600Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[debug] [2026-03-23T03:18:53.909Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:53.909Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:53.909Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:53.909Z] Checked if tokens are valid: true, expires at: 1774239461861
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[debug] [2026-03-23T03:18:53.917Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:53.917Z] Checked if tokens are valid: true, expires at: 1774239461861
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-03-23T03:18:53.918Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:53.918Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:53.918Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudfunctions.googleapis.com [none]
+[debug] [2026-03-23T03:18:53.919Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudfunctions.googleapis.com  x-goog-user-project=hrishi-dashboard
+[debug] [2026-03-23T03:18:53.919Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/runtimeconfig.googleapis.com [none]
+[debug] [2026-03-23T03:18:53.919Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/runtimeconfig.googleapis.com  x-goog-user-project=hrishi-dashboard
+[debug] [2026-03-23T03:18:53.921Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudbuild.googleapis.com [none]
+[debug] [2026-03-23T03:18:53.921Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudbuild.googleapis.com  x-goog-user-project=hrishi-dashboard
+[debug] [2026-03-23T03:18:53.923Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/artifactregistry.googleapis.com [none]
+[debug] [2026-03-23T03:18:53.923Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/artifactregistry.googleapis.com  x-goog-user-project=hrishi-dashboard
+[debug] [2026-03-23T03:18:55.525Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudfunctions.googleapis.com 200
+[debug] [2026-03-23T03:18:55.525Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudfunctions.googleapis.com [omitted]
+[warn] !  functions: missing required API cloudfunctions.googleapis.com. Enabling now... 
+[debug] [2026-03-23T03:18:55.530Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:55.530Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:55.531Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudfunctions.googleapis.com:enable [none]
+[debug] [2026-03-23T03:18:55.531Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudfunctions.googleapis.com:enable  x-goog-user-project=hrishi-dashboard
+[debug] [2026-03-23T03:18:55.569Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/runtimeconfig.googleapis.com 200
+[debug] [2026-03-23T03:18:55.569Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/runtimeconfig.googleapis.com [omitted]
+[debug] [2026-03-23T03:18:55.618Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudbuild.googleapis.com 200
+[debug] [2026-03-23T03:18:55.619Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudbuild.googleapis.com [omitted]
+[warn] !  functions: missing required API cloudbuild.googleapis.com. Enabling now... 
+[debug] [2026-03-23T03:18:55.623Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:55.623Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:55.623Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudbuild.googleapis.com:enable [none]
+[debug] [2026-03-23T03:18:55.623Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudbuild.googleapis.com:enable  x-goog-user-project=hrishi-dashboard
+[debug] [2026-03-23T03:18:55.624Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/artifactregistry.googleapis.com 200
+[debug] [2026-03-23T03:18:55.624Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/artifactregistry.googleapis.com [omitted]
+[warn] !  artifactregistry: missing required API artifactregistry.googleapis.com. Enabling now... 
+[debug] [2026-03-23T03:18:55.626Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:55.626Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:18:55.626Z] >>> [apiv2][query] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/artifactregistry.googleapis.com:enable [none]
+[debug] [2026-03-23T03:18:55.626Z] >>> [apiv2][(partial)header] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/artifactregistry.googleapis.com:enable  x-goog-user-project=hrishi-dashboard
+[debug] [2026-03-23T03:18:56.076Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudfunctions.googleapis.com:enable 200
+[debug] [2026-03-23T03:18:56.076Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudfunctions.googleapis.com:enable [omitted]
+[debug] [2026-03-23T03:18:57.540Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/artifactregistry.googleapis.com:enable 200
+[debug] [2026-03-23T03:18:57.540Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/artifactregistry.googleapis.com:enable [omitted]
+[debug] [2026-03-23T03:18:57.589Z] <<< [apiv2][status] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudbuild.googleapis.com:enable 200
+[debug] [2026-03-23T03:18:57.589Z] <<< [apiv2][body] POST https://serviceusage.googleapis.com/v1/projects/hrishi-dashboard/services/cloudbuild.googleapis.com:enable [omitted]
+[debug] [2026-03-23T03:19:07.605Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:19:07.606Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:19:07.606Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/hrishi-dashboard/adminSdkConfig [none]
+[debug] [2026-03-23T03:19:08.467Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/hrishi-dashboard/adminSdkConfig 200
+[debug] [2026-03-23T03:19:08.467Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/hrishi-dashboard/adminSdkConfig {"projectId":"hrishi-dashboard","storageBucket":"hrishi-dashboard.firebasestorage.app"}
+[debug] [2026-03-23T03:19:08.468Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:19:08.468Z] Checked if tokens are valid: true, expires at: 1774239461861
+[debug] [2026-03-23T03:19:08.468Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/hrishi-dashboard/configs [none]
+[debug] [2026-03-23T03:19:09.182Z] <<< [apiv2][status] GET https://runtimeconfig.googleapis.com/v1beta1/projects/hrishi-dashboard/configs 200
+[debug] [2026-03-23T03:19:09.183Z] <<< [apiv2][body] GET https://runtimeconfig.googleapis.com/v1beta1/projects/hrishi-dashboard/configs {}
+[debug] [2026-03-23T03:19:09.184Z] Customer code is not Node
+[debug] [2026-03-23T03:19:09.184Z] Validating python source
+[debug] [2026-03-23T03:19:09.185Z] Building python source
+[info] i  functions: Loading and analyzing source code for codebase default to determine what to deploy 
+[debug] [2026-03-23T03:19:09.186Z] Could not find functions.yaml. Must use http discovery
+[debug] [2026-03-23T03:19:09.198Z] Running command with virtualenv: command="C:\Users\HZ902\OneDrive\Desktop\academy_dashboard\project_backups\backup_2026-02-22_full\venv\Scripts\activate.bat", args=["","&&","python.exe","-c","\"import firebase_functions; import os; print(os.path.dirname(firebase_functions.__file__))\""]
+[debug] [2026-03-23T03:19:09.272Z] stderr: The system cannot find the path specified.
+
+[debug] [2026-03-23T03:19:09.385Z] Error: spawn "C:\Users\HZ902\OneDrive\Desktop\academy_dashboard\project_backups\backup_2026-02-22_full\venv\Scripts\activate.bat" ENOENT
+    at notFoundError (C:\Users\HZ902\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\cross-spawn\lib\enoent.js:6:26)
+    at verifyENOENT (C:\Users\HZ902\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\cross-spawn\lib\enoent.js:40:16)
+    at cp.emit (C:\Users\HZ902\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\cross-spawn\lib\enoent.js:27:25)
+    at ChildProcess._handle.onexit (node:internal/child_process:294:12)
+[error] 
+[error] Error: An unexpected error has occurred.

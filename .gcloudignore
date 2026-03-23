@@ -1,0 +1,27 @@
+# This file specifies files that should NOT be included in the Cloud Build context
+# when uploading source code for deployment to Cloud Run
+
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.coverage
+.env
+.env.example
+.vscode
+.git
+instance/logs
+backups
+project_backups
+tests
+*.db
+database.db
+academy.db
+*.zip
+*.tar.gz
+.pytest_cache
+node_modules
+.DS_Store
+*.md

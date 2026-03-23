@@ -1,3 +1,20 @@
+# ================= PASSWORD RESET TABLE =================
+def init_password_reset_table():
+    """Create password_resets table if it doesn't exist."""
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS password_resets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT NOT NULL,
+            otp TEXT NOT NULL,
+            expiry DATETIME NOT NULL,
+            attempts INTEGER DEFAULT 0
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
 """Shared utilities for the Academy Dashboard application."""
 
 import sqlite3

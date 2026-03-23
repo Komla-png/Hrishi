@@ -17,7 +17,7 @@ import secrets
 from datetime import timedelta
 from werkzeug.security import generate_password_hash
 
-from utils import get_db, generate_csrf_token, create_backup
+from utils import get_db, generate_csrf_token, create_backup, init_password_reset_table
 from blueprints import auth_bp, dashboard_bp, coaches_bp, analytics_bp, settings_bp, leaves_bp
 
 
@@ -160,6 +160,7 @@ def init_db():
         CREATE UNIQUE INDEX IF NOT EXISTS idx_monthly_data_unique ON monthly_data(center_id, month, year)
     """)
 
+    # Add unique constraint to summer_camp_incentives
     cur.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS idx_summer_camp_incentives_unique
         ON summer_camp_incentives(center_name, month, year)
@@ -176,6 +177,7 @@ def init_db():
         )
     """)
 
+    # Add unique constraint to summer_camp_centers_config
     cur.execute("""
         CREATE UNIQUE INDEX IF NOT EXISTS idx_summer_camp_centers_config_center
         ON summer_camp_centers_config(center_id)
@@ -410,6 +412,10 @@ create_backup("startup")
 
 # Initialize database on startup
 init_db()
+
+# ================= INIT PASSWORD RESET TABLE =================
+from utils import init_password_reset_table
+init_password_reset_table()
 
 
 # ================= RUN APPLICATION =================

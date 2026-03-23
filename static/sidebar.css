@@ -167,6 +167,7 @@ html.sb-collapsed-init .global-sidebar .sidebar-text {
       Wrap the page's main content in <div class="sb-content"> so it clears
       the fixed 220 px sidebar.
    -------------------------------------------------------------------------- */
+
 .sb-content {
     margin-left: 220px;
     transition: margin-left 0.2s ease;
